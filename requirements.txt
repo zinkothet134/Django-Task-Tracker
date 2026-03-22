@@ -5,8 +5,9 @@ django-widget-tweaks==1.5.1
 djangorestframework==3.17.0
 gunicorn==25.1.0
 packaging==26.0
-pillow==12.1.1
+pillow==11.3.0
 psycopg==3.3.3
+psycopg-binary==3.2.9
 sqlparse==0.5.5
 typing_extensions==4.15.0
-whitenoise==6.12.0
+whitenoise==6.9.0
