@@ -114,6 +114,8 @@ WSGI_APPLICATION = "task_tracker_project.wsgi.application"
 
 def database_config_from_url(db_url: str) -> dict:
     parsed = urlparse(db_url)
+    if parsed.port is None and ":" in parsed.netloc and parsed.netloc.rsplit(":", 1)[-1] == "port":
+        raise ValueError("DATABASE_URL still contains placeholder ':port'. Use a real numeric port.")
     return {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": parsed.path.lstrip("/"),
