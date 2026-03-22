@@ -1,0 +1,29 @@
+{% extends "tasks/base_tasks.html" %}
+
+{% block title %}My Department{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+
+    <div class="card soft-card p-4">
+      <h3 class="mb-3">Update My Department</h3>
+      <p class="text-muted">Choose your department</p>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label>Department</label>
+          {{ form.department }}
+        </div>
+
+        <button class="btn btn-primary rounded-pill">
+          Save
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

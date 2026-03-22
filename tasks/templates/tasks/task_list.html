@@ -1,0 +1,89 @@
+{% extends "tasks/base_tasks.html" %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">Tasks</h2>
+    <p class="text-muted mb-0">Browse, filter, and manage assigned work.</p>
+  </div>
+  <a href="{% url 'tasks:task_create' %}" class="btn btn-primary rounded-pill">Create Task</a>
+</div>
+
+<form method="get" class="card soft-card p-3 mb-4">
+  <div class="row g-3">
+    <div class="col-md-3"><input type="text" name="q" value="{{ keyword }}" class="form-control" placeholder="Search tasks"></div>
+    <div class="col-md-2">
+      <select name="status" class="form-select">
+        <option value="">All Status</option>
+        {% for code, label in status_choices %}
+          <option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="priority" class="form-select">
+        <option value="">All Priority</option>
+        {% for code, label in priority_choices %}
+          <option value="{{ code }}" {% if selected_priority == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="scope" class="form-select">
+        <option value="all" {% if selected_scope == 'all' %}selected{% endif %}>All</option>
+        <option value="assigned" {% if selected_scope == 'assigned' %}selected{% endif %}>Assigned to Me</option>
+        <option value="created" {% if selected_scope == 'created' %}selected{% endif %}>Created by Me</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="department" class="form-select">
+        <option value="">All Departments</option>
+        {% for dept in departments %}
+          <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
+            {{ dept.name }}
+          </option>
+        {% endfor %}
+      </select>
+      </div>
+    <div class="col-md-1"><button class="btn btn-dark w-100">Go</button></div>
+  </div>
+</form>
+
+<div class="card soft-card p-3">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Priority</th>
+          <th>Assigned</th>
+          <th>Created By</th>
+          <th>Due</th>
+          <th>Department</th>
+          <th>Edit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in tasks %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ task.title }}</div>
+            <div class="small text-muted">{{ task.description|truncatechars:70 }}</div>
+          </td>
+          <td>{{ task.get_status_display }}</td>
+          <td>{{ task.get_priority_display }}</td>
+          <td>{{ task.assigned_to|default:"-" }}</td>
+          <td>{{ task.created_by|default:"-" }}</td>
+          <td>{{ task.due_date|default:"-" }}</td>
+          <td>{{ task.department.name|default:"-" }}</td>
+          <td><a href="{{ task.get_absolute_url }}" class="btn btn-sm btn-outline-primary rounded-pill">Open</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No matching tasks found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

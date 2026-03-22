@@ -1,0 +1,30 @@
+{% extends "tasks/base_tasks.html" %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1">{{ task.title }}</h2>
+    <p class="text-muted mb-0">Created by {{ task.created_by|default:"-" }} • Updated {{ task.updated_at|date:"Y-m-d H:i" }}</p>
+  </div>
+  <a href="{% url 'tasks:task_update' task.pk %}" class="btn btn-primary rounded-pill">Edit Task</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card soft-card p-4">
+      <h5>Description</h5>
+      <p class="mb-0">{{ task.description|linebreaks }}</p>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card soft-card p-4">
+      <h5 class="mb-3">Details</h5>
+      <p><strong>Status:</strong> {{ task.get_status_display }}</p>
+      <p><strong>Priority:</strong> {{ task.get_priority_display }}</p>
+      <p><strong>Assigned To:</strong> {{ task.assigned_to|default:"-" }}</p>
+      <p><strong>Due Date:</strong> {{ task.due_date|default:"-" }}</p>
+      <p><strong>Department:</strong> {{ task.department.name|default:"-" }}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
