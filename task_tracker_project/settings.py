@@ -25,15 +25,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-insecure-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 if DEBUG:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 else:
     ALLOWED_HOSTS = [
         host.strip()
-        for host in os.environ.get("ALLOWED_HOSTS", "").split(",")
+        for host in os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
         if host.strip()
     ]
 CSRF_TRUSTED_ORIGINS = [
@@ -41,6 +40,9 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+if not DEBUG and not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
+    CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS]
 
 # Application definition
 
@@ -134,8 +136,14 @@ WSGI_APPLICATION = "task_tracker_project.wsgi.application"
 
 def database_config_from_url(db_url: str) -> dict:
     parsed = urlparse(db_url)
-    if parsed.port is None and ":" in parsed.netloc and parsed.netloc.rsplit(":", 1)[-1] == "port":
+
+    raw_port = None
+    if ":" in parsed.netloc.rsplit("@", 1)[-1]:
+        raw_port = parsed.netloc.rsplit("@", 1)[-1].rsplit(":", 1)[-1]
+
+    if raw_port == "port":
         raise ValueError("DATABASE_URL still contains placeholder ':port'. Use a real numeric port.")
+
     return {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": parsed.path.lstrip("/"),
