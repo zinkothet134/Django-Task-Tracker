@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from urllib.parse import urlparse
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,28 +23,42 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-insecure-key")
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    if os.getenv("DEBUG","TRUE").lower() in ("1", "true", "yes", "y", "on"):
+        SECRET_KEY = "django-insecure-local-dev-key-change-zkt"
+    else:
+        raise RuntimeError("SECRET_KEY environment variable is not set")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+DEBUG = os.getenv("DEBUG", "True").lower() in ("1", "true", "yes", "y", "on")
+
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS","*").split(",") if h.strip()]
 
 if DEBUG:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
-else:
-    ALLOWED_HOSTS = [
-        host.strip()
-        for host in os.environ.get("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
-        if host.strip()
-    ]
+    for _h in ("localhost", "127.0.0.1", "0.0.0.0"):
+        if _h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_h)
+
+_csrf_env = os.getenv("CSRF_TRUSTED_ORIGINS","").strip()
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
-    if origin.strip()
+    # Seenode default domains (wildcards are supported by Django)
+    "https://*.apps.run-on-seenode.com",
+    "https://*.run-on-seenode.com",
+
+    # Your current default domain (keep this even if wildcard should cover it)
+    "https://web-192g62pi0hvp.up-de-fra1-k8s-1.apps.run-on-seenode.com",
 ]
 
-if not DEBUG and not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
-    CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS]
+if _csrf_env:
+    CSRF_TRUSTED_ORIGINS += [o.strip() for o in _csrf_env.split(",") if o.strip()]
 
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS += [
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+    ]
 # Application definition
 
 INSTALLED_APPS = [
@@ -130,47 +145,55 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "task_tracker_project.wsgi.application"
 
+# Seenode runs Django behind a proxy/ingress. Tell Django how to detect HTTPS.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-def database_config_from_url(db_url: str) -> dict:
-    parsed = urlparse(db_url)
+USE_SQLITE = os.getenv("USE_SQLITE", "True" if DEBUG else "False").lower() in ("1", "true", "yes", "y", "on")
 
-    raw_port = None
-    if ":" in parsed.netloc.rsplit("@", 1)[-1]:
-        raw_port = parsed.netloc.rsplit("@", 1)[-1].rsplit(":", 1)[-1]
-
-    if raw_port == "port":
-        raise ValueError("DATABASE_URL still contains placeholder ':port'. Use a real numeric port.")
-
-    return {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": parsed.path.lstrip("/"),
-        "USER": parsed.username,
-        "PASSWORD": parsed.password,
-        "HOST": parsed.hostname,
-        "PORT": str(parsed.port or 5432),
-        "CONN_MAX_AGE": 600,
-        "OPTIONS": {
-            "sslmode": os.environ.get("PGSSLMODE", "require"),
-        },
-    }
-
-
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if DATABASE_URL:
-    DATABASES = {
-        "default": database_config_from_url(DATABASE_URL),
-    }
-else:
+if USE_SQLITE:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": str(BASE_DIR / "db.sqlite3"),
         }
     }
-
+else:
+    database_url = os.getenv("DATABASE_URL")
+    import dj_database_url
+    if database_url:
+        DATABASES = {
+            "default": dj_database_url.parse(
+                database_url,
+                conn_max_age=int(os.getenv("DB_CONN_MAX_AGE", "0")),
+                ssl_require=os.getenv("DB_SSLMODE", "require") == "require",
+            )
+        }
+    else:
+        _db_password = os.getenv("DB_PASSWORD","")
+        if not _db_password:
+            raise RuntimeError(
+                "DB_PASSWORD is not set. For local dev you can set USE_SQLITE=True, "
+                "or set DB_PASSWORD (and other DB_* vars) to use Postgres."
+            )
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": os.getenv("DB_NAME", "db_8wy9lhww8gwq"),
+                "USER": os.getenv("DB_USER", "db_8wy9lhww8gwq"),
+                "PASSWORD": _db_password,
+                "HOST": os.getenv("DB_HOST", "up-de-fra1-postgresql-2.db.run-on-seenode.com"),
+                "PORT": os.getenv("DB_PORT", "11550"),
+                "OPTIONS": {
+                    "sslmode": os.getenv("DB_SSLMODE", "require"),
+                    "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
+                },
+                "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "0")),
+            }
+        }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -210,14 +233,15 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 if not DEBUG:
-    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False" if DEBUG else "True").lower() == "true"
