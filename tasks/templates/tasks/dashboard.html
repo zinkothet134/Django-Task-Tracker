@@ -13,11 +13,46 @@
 
 <div class="row g-3 mb-4">
   <div class="col-md-2"><div class="card soft-card p-3"><small>Total</small><h3>{{ total_tasks }}</h3></div></div>
-  <div class="col-md-2"><div class="card soft-card p-3"><small>To Do</small><h3>{{ todo_count }}</h3></div></div>
-  <div class="col-md-2"><div class="card soft-card p-3"><small>In Progress</small><h3>{{ progress_count }}</h3></div></div>
-  <div class="col-md-2"><div class="card soft-card p-3"><small>Done</small><h3>{{ done_count }}</h3></div></div>
-  <div class="col-md-2"><div class="card soft-card p-3"><small>Blocked</small><h3>{{ blocked_count }}</h3></div></div>
-  <div class="col-md-2"><div class="card soft-card p-3"><small>Assigned To Me</small><h3>{{ my_tasks_count }}</h3></div></div>
+  <div class="col-md-2">
+    <a href="{% url 'tasks:task_list' %}?status=todo" class="text-decoration-none text-dark">
+      <div class="card soft-card p-3">
+        <small>To Do</small>
+        <h3>{{ todo_count }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-2">
+    <a href="{% url 'tasks:task_list' %}?status=progress" class="text-decoration-none text-dark">
+      <div class="card soft-card p-3">
+        <small>In Progress</small>
+        <h3>{{ progress_count }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-2">
+    <a href="{% url 'tasks:task_list' %}?status=done" class="text-decoration-none text-dark">
+      <div class="card soft-card p-3">
+        <small>Done</small>
+        <h3>{{ done_count }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-2">
+    <a href="{% url 'tasks:task_list' %}?status=blocked" class="text-decoration-none text-dark">
+      <div class="card soft-card p-3">
+        <small>Blocked</small>
+        <h3>{{ blocked_count }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-2">
+    <a href="{% url 'tasks:task_list' %}?assigned=me" class="text-decoration-none text-dark">
+      <div class="card soft-card p-3">
+        <small>Assigned To Me</small>
+        <h3>{{ my_tasks_count }}</h3>
+      </div>
+    </a>
+  </div>
 </div>
 
 <div class="card soft-card p-4">
