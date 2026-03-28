@@ -16,6 +16,7 @@ class TaskForm(forms.ModelForm):
             "status",
             "priority",
             "due_date",
+            "attachment_link",
             "department",
             "assigned_to",
         ]
@@ -28,6 +29,12 @@ class TaskForm(forms.ModelForm):
                     "class": "form-control",
                     "rows": 5,
                     "placeholder": "Task description",
+                }
+            ),
+            "attachment_link": forms.URLInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'https://drive.google.com/... or https://onedrive.live.com/...',
                 }
             ),
             "status": forms.Select(attrs={"class": "form-select"}),

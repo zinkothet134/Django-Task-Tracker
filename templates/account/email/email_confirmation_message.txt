@@ -1,0 +1,9 @@
+Hello from Chue Family!
+
+You're receiving this email because you ({{ user.username }}) signed up has given your email address to register an account for TaskFlow.
+
+Please confirm your email by clicking the link below:
+{{ activate_url }}
+
+Thank you,
+Chue Family Team

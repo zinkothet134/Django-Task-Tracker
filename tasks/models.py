@@ -42,6 +42,7 @@ class Task(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=TODO)
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default=MEDIUM)
     due_date = models.DateField(null=True, blank=True)
+    attachment_link = models.URLField(null=True, blank=True, help_text='Optional link to Google Drive, OneDrive, or any external resource')
 
     department = models.ForeignKey(
         Department,

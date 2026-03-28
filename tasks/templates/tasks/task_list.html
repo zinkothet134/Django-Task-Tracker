@@ -61,6 +61,7 @@
           <th>Created By</th>
           <th>Due</th>
           <th>Department</th>
+          <th>Link</th>
           <th>Edit</th>
         </tr>
       </thead>
@@ -71,16 +72,23 @@
             <div class="fw-semibold">{{ task.title }}</div>
             <div class="small text-muted">{{ task.description|truncatechars:70 }}</div>
           </td>
-          <td>{{ task.get_status_display }}</td>
-          <td>{{ task.get_priority_display }}</td>
-          <td>{{ task.assigned_to|default:"-" }}</td>
-          <td>{{ task.created_by|default:"-" }}</td>
-          <td>{{ task.due_date|default:"-" }}</td>
-          <td>{{ task.department.name|default:"-" }}</td>
+          <td><span class="badge bg-secondary">{{ task.get_status_display }}</span></td>
+          <td><span class="badge bg-info text-dark">{{ task.get_priority_display }}</span></td>
+          <td><span class="badge bg-light text-dark">{{ task.assigned_to|default:"-" }}</span></td>
+          <td><span class="badge bg-light text-dark">{{ task.created_by|default:"-" }}</span></td>
+          <td><span class="badge bg-warning text-dark">{{ task.due_date|default:"-" }}</span></td>
+          <td><span class="badge bg-dark">{{ task.department.name|default:"-" }}</span></td>
+          <td>
+            {% if task.attachment_link %}
+              <a href="{{ task.attachment_link }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill">Open</a>
+            {% else %}
+              -
+            {% endif %}
+          </td>
           <td><a href="{{ task.get_absolute_url }}" class="btn btn-sm btn-outline-primary rounded-pill">Open</a></td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="text-center text-muted py-4">No matching tasks found.</td></tr>
+        <tr><td colspan="9" class="text-center text-muted py-4">No matching tasks found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

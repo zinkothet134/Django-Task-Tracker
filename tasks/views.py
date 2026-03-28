@@ -1,5 +1,5 @@
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import TaskForm, DepartmentForm, ProfileDepartmentForm
@@ -25,6 +25,10 @@ def _visible_tasks_for_user(user):
 def dashboard(request):
     tasks = _visible_tasks_for_user(request.user)
 
+    priority_summary = tasks.filter(status__in=[Task.TODO, Task.IN_PROGRESS]).values("priority").annotate(total=Count("id")).order_by("priority")
+    priority_choices = dict(Task.PRIORITY_CHOICES)
+
+
     context = {
         "total_tasks": tasks.count(),
         "todo_count": tasks.filter(status=Task.TODO).count(),
@@ -33,6 +37,20 @@ def dashboard(request):
         "blocked_count": tasks.filter(status=Task.BLOCKED).count(),
         "my_tasks_count": tasks.filter(assigned_to=request.user).count(),
         "recent_tasks": tasks.order_by("-created_at")[:6],
+        "status_todo": Task.TODO,
+        "status_in_progress": Task.IN_PROGRESS,
+        "status_done": Task.DONE,
+        "status_blocked": Task.BLOCKED,
+        "status_chart_labels": ["To Do", "In Progress", "Done", "Blocked"],
+        "status_chart_data": [
+            tasks.filter(status=Task.TODO).count(),
+            tasks.filter(status=Task.IN_PROGRESS).count(),
+            tasks.filter(status=Task.DONE).count(),
+            tasks.filter(status=Task.BLOCKED).count(),
+        ],
+        "priority_chart_title": "Tasks by Priority (To Do + In Progress)",
+        "priority_chart_labels": [priority_choices.get(item["priority"], item["priority"]) for item in priority_summary],
+        "priority_chart_data": [item["total"] for item in priority_summary],
     }
     return render(request, "tasks/dashboard.html", context)
 
@@ -43,8 +61,17 @@ def task_list(request):
 
     keyword = (request.GET.get("q") or "").strip()
     status = (request.GET.get("status") or "").strip()
+    status_aliases = {
+        "progress": Task.IN_PROGRESS,
+        "in-progress": Task.IN_PROGRESS,
+        "in_progress": Task.IN_PROGRESS,
+        "todo": Task.TODO,
+        "done": Task.DONE,
+        "blocked": Task.BLOCKED,
+    }
+    status = status_aliases.get(status.lower(), status)
     priority = (request.GET.get("priority") or "").strip()
-    assignee = (request.GET.get("assignee") or "").strip()
+    assignee = (request.GET.get("assignee") or request.GET.get("assigned") or "").strip()
     department = (request.GET.get("department") or "").strip()
     scope = (request.GET.get("scope") or "all").strip()
 
@@ -52,6 +79,7 @@ def task_list(request):
         tasks = tasks.filter(
             Q(title__icontains=keyword) |
             Q(description__icontains=keyword) |
+            Q(attachment_link__icontains=keyword) |
             Q(created_by__username__icontains=keyword) |
             Q(assigned_to__username__icontains=keyword) |
             Q(department__name__icontains=keyword)
