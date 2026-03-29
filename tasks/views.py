@@ -4,6 +4,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import TaskForm, DepartmentForm, ProfileDepartmentForm
 from .models import Task, Department, Profile
+from django.conf import settings
+from django.core.mail import send_mail
 
 
 def _visible_tasks_for_user(user):
@@ -131,6 +133,7 @@ def task_create(request):
             if not task.department:
                 task.department = getattr(getattr(request.user, "profile", None), "department", None)
             task.save()
+            send_task_mail(task)
             return redirect(task.get_absolute_url())
     else:
         form = TaskForm()
@@ -202,3 +205,24 @@ def profile_department_update(request):
         "form": form,
         "profile": profile,
     })
+
+
+def send_task_mail(task):
+    if task.assigned_to and task.assigned_to.email:
+        send_mail(
+            subject=f"New Task Assigned: {task.title}",
+            message=f"""Hello {task.assigned_to.get_full_name() or task.assigned_to.username},
+You have been assigned a task. 
+Title: {task.title}
+Due Date: {task.due_date}
+
+View Task: 
+http://chuefamily.shop{task.get_absolute_url()}
+
+Thank you, 
+ChueFamily
+            """,
+            from_email=settings.DEFAULT_FROM_MAIL,
+            recipient_list=[task.assigned_to.email],
+            fail_silently=False,
+        )
