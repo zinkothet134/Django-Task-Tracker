@@ -1,14 +1,34 @@
 {% extends "tasks/base_tasks.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
   <div>
     <h2 class="mb-1">Task Dashboard</h2>
     <p class="text-muted mb-0">Track assignments, progress, and team workload.</p>
   </div>
-  <a href="{% url 'tasks:task_create' %}" class="btn btn-primary btn-lg rounded-pill">
-    <i class="fa-solid fa-plus"></i> New Task
-  </a>
+
+  <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end ms-auto">
+    {% if show_referral_code %}
+    <div class="card border-0 shadow-sm" style="border-radius: 18px; min-width: 320px; background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%);">
+      <div class="card-body py-3 px-3 d-flex align-items-center justify-content-between gap-3">
+        <div>
+          <div class="small text-uppercase text-muted fw-semibold mb-1" style="letter-spacing: .06em;">Referral Code</div>
+          <div class="fw-bold fs-5 text-primary">{{ referral_code }}</div>
+          <div class="text-muted small">Invite team members into your organization</div>
+        </div>
+        <button class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                type="button"
+                onclick="navigator.clipboard.writeText('{{ referral_code }}')">
+          Copy
+        </button>
+      </div>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'tasks:task_create' %}" class="btn btn-primary btn-lg rounded-pill">
+      <i class="fa-solid fa-plus"></i> New Task
+    </a>
+  </div>
 </div>
 
 <div class="row g-3 mb-4">

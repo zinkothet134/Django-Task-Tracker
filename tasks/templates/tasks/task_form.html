@@ -40,14 +40,19 @@
           {{ form.attachment_link }}
           <div class="form-text">Paste a Google Drive, OneDrive, or any external resource link.</div>
         </div>
+        {% if form.department %}
         <div class="mb-3">
           <label class="form-label">Department</label>
           {{ form.department }}
         </div>
+        {% endif %}
+
+        {% if form.assigned_to %}
         <div class="mt-3">
           <label class="form-label">Assign To</label>
           {{ form.assigned_to }}
         </div>
+        {% endif %}
         <div class="mt-4 d-flex gap-2">
           <button type="submit" class="btn btn-primary rounded-pill">{{ button_text }}</button>
           <a href="{% url 'tasks:task_list' %}" class="btn btn-outline-secondary rounded-pill">Cancel</a>

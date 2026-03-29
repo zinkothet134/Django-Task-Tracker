@@ -14,19 +14,35 @@ def _visible_tasks_for_user(user):
     if user.is_superuser:
         return tasks
 
-    user_department = getattr(getattr(user, "profile", None), "department", None)
+    profile = getattr(user, "profile", None)
+    user_department = getattr(profile, "department", None)
+    user_organization_id = (getattr(profile, "organization_id", "") or "").strip()
 
     visibility_filter = Q(created_by=user) | Q(assigned_to=user)
-    if user_department:
-        visibility_filter |= Q(department=user_department)
+
+    if user_organization_id:
+        visibility_filter |= Q(
+            organization_id=user_organization_id,
+            visibility=Task.ORGANIZATION,
+        )
+
+        if user_department:
+            visibility_filter |= Q(
+                organization_id=user_organization_id,
+                department=user_department,
+                visibility=Task.DEPARTMENT,
+            )
 
     return tasks.filter(visibility_filter).distinct()
 
 
 @login_required
 def dashboard(request):
-    tasks = _visible_tasks_for_user(request.user)
+    profile = getattr(request.user, "profile", None)
+    if profile and getattr(profile, "app_purpose", "PERSONAL") == "TEAM" and not getattr(profile, "department", None):
+        return redirect("tasks:profile_department_update")
 
+    tasks = _visible_tasks_for_user(request.user)
     priority_summary = tasks.filter(status__in=[Task.TODO, Task.IN_PROGRESS]).values("priority").annotate(total=Count("id")).order_by("priority")
     priority_choices = dict(Task.PRIORITY_CHOICES)
 
@@ -43,6 +59,8 @@ def dashboard(request):
         "status_in_progress": Task.IN_PROGRESS,
         "status_done": Task.DONE,
         "status_blocked": Task.BLOCKED,
+        "referral_code": getattr(profile, "organization_referral_code", "") if getattr(profile, "app_purpose", "PERSONAL") == "TEAM" else "",
+        "show_referral_code": getattr(profile, "app_purpose", "PERSONAL") == "TEAM" and bool(getattr(profile, "organization_referral_code", "")),
         "status_chart_labels": ["To Do", "In Progress", "Done", "Blocked"],
         "status_chart_data": [
             tasks.filter(status=Task.TODO).count(),
@@ -99,9 +117,28 @@ def task_list(request):
     if assignee == "me":
         tasks = tasks.filter(assigned_to=request.user)
 
-    user_department = getattr(getattr(request.user, "profile", None), "department", None)
-    if scope == "department" and user_department:
-        tasks = tasks.filter(department=user_department)
+    profile = getattr(request.user, "profile", None)
+    user_department = getattr(profile, "department", None)
+    user_organization_id = (getattr(profile, "organization_id", "") or "").strip()
+
+    if scope == "department":
+        if user_department and user_organization_id:
+            tasks = tasks.filter(
+                organization_id=user_organization_id,
+                department=user_department,
+                visibility=Task.DEPARTMENT,
+            )
+        else:
+            tasks = tasks.none()
+
+    if scope == "organization":
+        if user_organization_id:
+            tasks = tasks.filter(
+                organization_id=user_organization_id,
+                visibility=Task.ORGANIZATION,
+            )
+        else:
+            tasks = tasks.none()
 
     if scope == "created":
         tasks = tasks.filter(created_by=request.user)
@@ -118,7 +155,7 @@ def task_list(request):
         "selected_scope": scope,
         "status_choices": Task.STATUS_CHOICES,
         "priority_choices": Task.PRIORITY_CHOICES,
-        "departments": Department.objects.all().order_by("name"),
+        "departments": Department.objects.filter(organization_id=user_organization_id).order_by("name") if user_organization_id else Department.objects.none(),
     }
     return render(request, "tasks/task_list.html", context)
 
@@ -126,17 +163,31 @@ def task_list(request):
 @login_required
 def task_create(request):
     if request.method == "POST":
-        form = TaskForm(request.POST)
+        form = TaskForm(request.POST, user=request.user)
         if form.is_valid():
             task = form.save(commit=False)
             task.created_by = request.user
+            profile = getattr(request.user, "profile", None)
+            user_department = getattr(profile, "department", None)
+            user_organization_id = (getattr(profile, "organization_id", "") or "").strip()
+
             if not task.department:
-                task.department = getattr(getattr(request.user, "profile", None), "department", None)
+                task.department = user_department
+
+            if user_organization_id:
+                task.organization_id = user_organization_id
+                if task.department:
+                    task.visibility = Task.DEPARTMENT
+                else:
+                    task.visibility = Task.ORGANIZATION if getattr(profile, "app_purpose", "PERSONAL") == 'TEAM' else Task.PERSONAL
+            else:
+                task.visibility = Task.PERSONAL
+
             task.save()
             send_task_mail(task)
             return redirect(task.get_absolute_url())
     else:
-        form = TaskForm()
+        form = TaskForm(user=request.user)
 
     return render(request, "tasks/task_form.html", {
         "form": form,
@@ -151,7 +202,7 @@ def task_update(request, pk):
     task = get_object_or_404(visible_tasks, pk=pk)
 
     if request.method == "POST":
-        form = TaskForm(request.POST, instance=task)
+        form = TaskForm(request.POST, instance=task, user=request.user)
         if form.is_valid():
             form.save()
             return redirect(task.get_absolute_url())
@@ -178,7 +229,10 @@ def department_create(request):
     if request.method == "POST":
         form = DepartmentForm(request.POST)
         if form.is_valid():
-            form.save()
+            department = form.save(commit=False)
+            profile = getattr(request.user, "profile", None)
+            department.organization_id = (getattr(profile, "organization_id", "") or "").strip()
+            department.save()
             return redirect("tasks:dashboard")
     else:
         form = DepartmentForm()
@@ -192,14 +246,19 @@ def department_create(request):
 def profile_department_update(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
 
+    user_organization_id = (getattr(profile, "organization_id", "") or "").strip()
+    allowed_departments = Department.objects.filter(organization_id=user_organization_id).order_by("name") if user_organization_id else Department.objects.none()
+
     if request.method == "POST":
         form = ProfileDepartmentForm(request.POST)
+        form.fields["department"].queryset = allowed_departments
         if form.is_valid():
             profile.department = form.cleaned_data["department"]
             profile.save()
             return redirect("tasks:dashboard")
     else:
         form = ProfileDepartmentForm(initial={"department": profile.department})
+        form.fields["department"].queryset = allowed_departments
 
     return render(request, "tasks/profile_department_form.html", {
         "form": form,

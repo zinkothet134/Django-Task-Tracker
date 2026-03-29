@@ -1,5 +1,5 @@
-from django import forms 
-from .models import Task, Department
+from django import forms
+from .models import Task, Department, Profile
 
 
 class TaskForm(forms.ModelForm):
@@ -42,6 +42,15 @@ class TaskForm(forms.ModelForm):
             "department": forms.Select(attrs={"class": "form-select"}),
             "assigned_to": forms.Select(attrs={"class": "form-select"}),
         }
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            profile = getattr(user, "profile", None)
+            if profile and getattr(profile, "app_purpose", "PERSONAL") == "PERSONAL":
+                self.fields.pop("department", None)
+                self.fields.pop("assigned_to", None)
 
 class DepartmentForm(forms.ModelForm):
     class Meta:
@@ -66,3 +75,98 @@ class ProfileDepartmentForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={"class": "form-select"})
     )
+
+
+class OrganizationSignupForm(forms.Form):
+    organization_referral_code = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Enter organization referral code if you were invited",
+            }
+        ),
+    )
+    app_purpose = forms.ChoiceField(
+        choices=Profile.APP_PURPOSE_CHOICES,
+        initial="PERSONAL",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    organization_id = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Enter organization ID if using this app for team coordination",
+            }
+        ),
+    )
+    department_name = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Create your first department for this organization",
+            }
+        ),
+    )
+    staff_id = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Enter your staff ID if applicable",
+            }
+        ),
+    )
+
+    def clean(self):
+        cleaned_data = getattr(super(), "clean", lambda: {})()
+        app_purpose = (cleaned_data.get("app_purpose") or "PERSONAL").strip()
+        organization_id = (cleaned_data.get("organization_id") or "").strip()
+        
+        organization_referral_code = (cleaned_data.get("organization_referral_code") or "").strip().upper()
+        staff_id = (cleaned_data.get("staff_id") or "").strip()
+        department_name = (cleaned_data.get("department_name") or "").strip()
+
+        referred_profile = None
+        if organization_referral_code:
+            referred_profile = Profile.objects.filter(
+                organization_referral_code=organization_referral_code
+            ).select_related("user").first()
+            if not referred_profile:
+                self.add_error("organization_referral_code", "Referral code was not found.")
+            else:
+                cleaned_data["organization_id"] = referred_profile.organization_id
+                organization_id = referred_profile.organization_id
+                cleaned_data["referred_profile"] = referred_profile
+
+        if app_purpose == "TEAM":
+            if not organization_id and not organization_referral_code:
+                self.add_error("organization_id", "Organization ID or referral code is required for team coordination accounts.")
+            if not staff_id:
+                self.add_error("staff_id", "Staff ID is required for team coordination accounts.")
+            if not organization_referral_code and not department_name:
+                self.add_error("department_name", "Department is required when creating a new organization team account.")
+
+        return cleaned_data
+
+    def signup(self, request, user):
+        profile, _ = Profile.objects.get_or_create(user=user)
+        profile.app_purpose = self.cleaned_data.get("app_purpose") or "PERSONAL"
+        profile.organization_id = (self.cleaned_data.get("organization_id") or "").strip()
+        referred_profile = self.cleaned_data.get("referred_profile")
+        if referred_profile:
+            profile.referred_by = referred_profile.user
+        profile.staff_id = (self.cleaned_data.get("staff_id") or "").strip()
+        profile.save()
+
+        department_name = (self.cleaned_data.get("department_name") or "").strip()
+        if profile.app_purpose == "TEAM" and department_name and profile.organization_id:
+            department, _ = Department.objects.get_or_create(
+                name=department_name,
+                organization_id=profile.organization_id,
+                defaults={"description": ""},
+            )
+            profile.department = department
+            profile.save(update_fields=["department"])

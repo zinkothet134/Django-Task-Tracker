@@ -1,11 +1,13 @@
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils.text import slugify
 
 # Create your models here.
 class Department(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    organization_id = models.CharField(max_length=100, blank=True, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -37,12 +39,24 @@ class Task(models.Model):
         (URGENT, "Urgent"),
     )
 
+    PERSONAL = 'PERSONAL'
+    DEPARTMENT = 'DEPARTMENT'
+    ORGANIZATION = 'ORGANIZATION'
+
+    VISIBILITY_CHOICES = (
+        (PERSONAL, 'Personal'),
+        (DEPARTMENT, 'Department'),
+        (ORGANIZATION, 'Organization'),
+    )
+
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=TODO)
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default=MEDIUM)
     due_date = models.DateField(null=True, blank=True)
     attachment_link = models.URLField(null=True, blank=True, help_text='Optional link to Google Drive, OneDrive, or any external resource')
+    organization_id = models.CharField(max_length=100, blank=True, db_index=True)
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default=PERSONAL)
 
     department = models.ForeignKey(
         Department,
@@ -86,6 +100,23 @@ class Profile(models.Model):
         on_delete=models.CASCADE,
         related_name="profile",
     )
+    APP_PURPOSE_CHOICES = (
+        ('PERSONAL', 'Personal Productivity'),
+        ('TEAM', 'Organization Team Coordination'),
+    )
+
+    app_purpose = models.CharField(max_length=20, choices=APP_PURPOSE_CHOICES, default='PERSONAL')
+    organization_id = models.CharField(max_length=100, blank=True, db_index=True)
+    staff_id = models.CharField(max_length=100, blank=True)
+    organization_referral_code = models.CharField(max_length=120, blank=True, db_index=True)
+    referred_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="referred_users",
+    )
+
     department = models.ForeignKey(
         Department,
         on_delete=models.SET_NULL,
@@ -94,7 +125,16 @@ class Profile(models.Model):
         related_name="members",
     )
     image = models.ImageField(upload_to="profiles/", null=True, blank=True)
-
+    def save(self, *args, **kwargs):
+        if self.organization_id and not self.organization_referral_code:
+            base_code = slugify(self.organization_id).replace("-", "").upper()[:24] or "ORG"
+            candidate = base_code
+            counter = 1
+            while Profile.objects.exclude(pk=self.pk).filter(organization_referral_code=candidate).exists():
+                counter += 1
+                candidate = f"{base_code}{counter}"
+            self.organization_referral_code = candidate
+        super().save(*args, **kwargs)
+        
     def __str__(self):
         return f"{self.user.username} Profile"
-

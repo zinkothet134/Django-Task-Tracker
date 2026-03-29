@@ -22,14 +22,46 @@
       background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
       color: white;
     }
-    .form-control {
+    .form-control,
+    .form-select {
       border-radius: 14px;
       padding: 12px 14px;
+      border: 1px solid #dbe2ea;
+      box-shadow: none;
+    }
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
     }
     .btn-main {
       border-radius: 999px;
       padding: 12px 18px;
       font-weight: 600;
+    }
+    .section-card {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 20px;
+      padding: 20px;
+    }
+    .section-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .usage-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 768px) {
+      .usage-grid.two-col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
   </style>
 </head>
@@ -62,19 +94,85 @@
             <form method="post" action="{% url 'account_signup' %}">
               {% csrf_token %}
 
-              <div class="mb-3">
+              <div class="mb-4">
                 <label class="form-label fw-semibold">Email</label>
                 {{ form.email|add_class:"form-control"|attr:"placeholder:Enter your email" }}
+                {% if form.email.errors %}
+                  <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                {% endif %}
               </div>
 
-              <div class="mb-3">
-                <label class="form-label fw-semibold">Password</label>
-                {{ form.password1|add_class:"form-control"|attr:"placeholder:Create a password" }}
+              <div class="section-card mb-4">
+                <div class="section-title">Usage Setup</div>
+
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">App Purpose</label>
+                  {{ form.app_purpose|add_class:"form-select" }}
+                  <div class="form-text">Choose personal productivity or organization team coordination.</div>
+                  {% if form.app_purpose.errors %}
+                    <div class="text-danger small mt-1">{{ form.app_purpose.errors }}</div>
+                  {% endif %}
+                </div>
+
+                <div id="organization-fields" class="usage-grid">
+                  <div class="usage-grid two-col">
+                    <div>
+                      <label class="form-label fw-semibold">Organization ID</label>
+                      {{ form.organization_id|add_class:"form-control"|attr:"placeholder:Enter organization ID" }}
+                      <div class="form-text">Enter this directly or use a referral code.</div>
+                      {% if form.organization_id.errors %}
+                        <div class="text-danger small mt-1">{{ form.organization_id.errors }}</div>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <label class="form-label fw-semibold">Referral Code</label>
+                      {{ form.organization_referral_code|add_class:"form-control"|attr:"placeholder:Enter organization referral code" }}
+                      <div class="form-text">Use this if an existing organization member invited you.</div>
+                      {% if form.organization_referral_code.errors %}
+                        <div class="text-danger small mt-1">{{ form.organization_referral_code.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="usage-grid two-col">
+                    <div>
+                      <label class="form-label fw-semibold">Staff ID</label>
+                      {{ form.staff_id|add_class:"form-control"|attr:"placeholder:Enter your staff ID" }}
+                      <div class="form-text">Used to identify you inside your organization.</div>
+                      {% if form.staff_id.errors %}
+                        <div class="text-danger small mt-1">{{ form.staff_id.errors }}</div>
+                      {% endif %}
+                    </div>
+                    <div id="department-field-wrap">
+                      <label class="form-label fw-semibold">Department</label>
+                      {{ form.department_name|add_class:"form-control"|attr:"placeholder:Create your first department" }}
+                      <div class="form-text">Only needed when creating a new organization without a referral code.</div>
+                      {% if form.department_name.errors %}
+                        <div class="text-danger small mt-1">{{ form.department_name.errors }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div class="mb-3">
-                <label class="form-label fw-semibold">Confirm Password</label>
-                {{ form.password2|add_class:"form-control"|attr:"placeholder:Confirm your password" }}
+              <div class="section-card mb-4">
+                <div class="section-title">Security</div>
+
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Password</label>
+                  {{ form.password1|add_class:"form-control"|attr:"placeholder:Create a password" }}
+                  {% if form.password1.errors %}
+                    <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
+                  {% endif %}
+                </div>
+
+                <div class="mb-0">
+                  <label class="form-label fw-semibold">Confirm Password</label>
+                  {{ form.password2|add_class:"form-control"|attr:"placeholder:Confirm your password" }}
+                  {% if form.password2.errors %}
+                    <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
+                  {% endif %}
+                </div>
               </div>
 
               <button type="submit" class="btn btn-primary btn-main w-100">
@@ -92,5 +190,41 @@
     </div>
   </div>
 </div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const purposeField = document.getElementById("id_app_purpose");
+    const referralField = document.getElementById("id_organization_referral_code");
+    const orgSection = document.getElementById("organization-fields");
+    const departmentWrap = document.getElementById("department-field-wrap");
+
+    function toggleOrgFields() {
+      if (!purposeField || !orgSection) {
+        return;
+      }
+
+      const isPersonal = purposeField.value === "PERSONAL";
+      const hasReferralCode = referralField && referralField.value.trim() !== "";
+
+      if (isPersonal) {
+        orgSection.style.display = "none";
+      } else {
+        orgSection.style.display = "grid";
+      }
+
+      if (departmentWrap) {
+        departmentWrap.style.display = !isPersonal && !hasReferralCode ? "block" : "none";
+      }
+    }
+
+    if (purposeField) {
+      toggleOrgFields();
+      purposeField.addEventListener("change", toggleOrgFields);
+    }
+
+    if (referralField) {
+      referralField.addEventListener("input", toggleOrgFields);
+    }
+  });
+</script>
 </body>
 </html>
