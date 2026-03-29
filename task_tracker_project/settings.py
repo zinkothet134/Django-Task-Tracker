@@ -59,8 +59,11 @@ if DEBUG:
         "http://127.0.0.1:8000",
         "http://localhost:8000",
     ]
-# Application definition
 
+# This tells Django to look for the SITE_URL in Seenode's environment
+SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000')
+
+# Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
