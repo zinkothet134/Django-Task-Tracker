@@ -222,7 +222,7 @@ http://chuefamily.shop{task.get_absolute_url()}
 Thank you, 
 ChueFamily
             """,
-            from_email=settings.DEFAULT_FROM_MAIL,
+            from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[task.assigned_to.email],
             fail_silently=False,
         )
