@@ -48,9 +48,37 @@ class TaskForm(forms.ModelForm):
 
         if user:
             profile = getattr(user, "profile", None)
+
+            # PERSONAL user → hide org-related fields
             if profile and getattr(profile, "app_purpose", "PERSONAL") == "PERSONAL":
                 self.fields.pop("department", None)
                 self.fields.pop("assigned_to", None)
+
+            # TEAM user → restrict choices properly
+            elif profile and getattr(profile, "app_purpose", "PERSONAL") == "TEAM":
+                user_org = (getattr(profile, "organization_id", "") or "").strip()
+
+                if "department" in self.fields:
+                    self.fields["department"].queryset = Department.objects.filter(
+                        organization_id=user_org
+                    ).order_by("name")
+
+                if "assigned_to" in self.fields:
+                    self.fields["assigned_to"].queryset = (
+                        Profile.objects.filter(
+                            organization_id=user_org
+                        )
+                        .select_related("user")
+                        .order_by("user__username")
+                        .values_list("user", flat=True)
+                    )
+                if "assigned_to" in self.fields:
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+
+                    self.fields["assigned_to"].queryset = User.objects.filter(
+                        profile__organization_id=user_org
+                    ).order_by("username")
 
 class DepartmentForm(forms.ModelForm):
     class Meta:

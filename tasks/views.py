@@ -50,6 +50,8 @@ def dashboard(request):
             return redirect("tasks:profile_department_update")
 
     tasks = _visible_tasks_for_user(request.user)
+    priority_summary = tasks.filter(status__in=[Task.TODO, Task.IN_PROGRESS]).values("priority").annotate(total=Count("id")).order_by("priority")
+    priority_choices = dict(Task.PRIORITY_CHOICES)
 
 
     context = {
@@ -167,16 +169,18 @@ def task_list(request):
 
 @login_required
 def task_create(request):
+    profile = getattr(request.user, "profile", None)
+    is_personal_user = getattr(profile, "app_purpose", "PERSONAL") == "PERSONAL"
+
     if request.method == "POST":
-        form = TaskForm(request.POST, user=request.user)
+        form = TaskForm(request.POST, user=request.user) if is_personal_user else TaskForm(request.POST)
         if form.is_valid():
             task = form.save(commit=False)
             task.created_by = request.user
-            profile = getattr(request.user, "profile", None)
             user_department = getattr(profile, "department", None)
             user_organization_id = (getattr(profile, "organization_id", "") or "").strip()
 
-            if not task.department:
+            if not getattr(task, "department", None):
                 task.department = user_department
 
             if user_organization_id:
@@ -184,15 +188,18 @@ def task_create(request):
                 if task.department:
                     task.visibility = Task.DEPARTMENT
                 else:
-                    task.visibility = Task.ORGANIZATION if getattr(profile, "app_purpose", "PERSONAL") == 'TEAM' else Task.PERSONAL
+                    task.visibility = Task.ORGANIZATION if getattr(profile, "app_purpose", "PERSONAL") == "TEAM" else Task.PERSONAL
             else:
                 task.visibility = Task.PERSONAL
+
+            if is_personal_user and hasattr(task, "assigned_to") and not task.assigned_to:
+                task.assigned_to = request.user
 
             task.save()
             send_task_mail(task)
             return redirect(task.get_absolute_url())
     else:
-        form = TaskForm(user=request.user)
+        form = TaskForm(user=request.user) if is_personal_user else TaskForm()
 
     return render(request, "tasks/task_form.html", {
         "form": form,
@@ -205,14 +212,19 @@ def task_create(request):
 def task_update(request, pk):
     visible_tasks = _visible_tasks_for_user(request.user)
     task = get_object_or_404(visible_tasks, pk=pk)
+    profile = getattr(request.user, "profile", None)
+    is_personal_user = getattr(profile, "app_purpose", "PERSONAL") == "PERSONAL"
 
     if request.method == "POST":
-        form = TaskForm(request.POST, instance=task, user=request.user)
+        form = TaskForm(request.POST, instance=task, user=request.user) if is_personal_user else TaskForm(request.POST, instance=task)
         if form.is_valid():
-            form.save()
-            return redirect(task.get_absolute_url())
+            updated_task = form.save(commit=False)
+            if is_personal_user and hasattr(updated_task, "assigned_to") and not updated_task.assigned_to:
+                updated_task.assigned_to = request.user
+            updated_task.save()
+            return redirect(updated_task.get_absolute_url())
     else:
-        form = TaskForm(instance=task)
+        form = TaskForm(instance=task, user=request.user) if is_personal_user else TaskForm(instance=task)
 
     return render(request, "tasks/task_form.html", {
         "form": form,
