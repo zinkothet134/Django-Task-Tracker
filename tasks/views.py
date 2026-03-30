@@ -39,12 +39,17 @@ def _visible_tasks_for_user(user):
 @login_required
 def dashboard(request):
     profile = getattr(request.user, "profile", None)
+
     if profile and getattr(profile, "app_purpose", "PERSONAL") == "TEAM" and not getattr(profile, "department", None):
-        return redirect("tasks:profile_department_update")
+        user_organization_id = (getattr(profile, "organization_id", "") or "").strip()
+        has_available_departments = Department.objects.filter(
+            organization_id=user_organization_id
+        ).exists()
+
+        if has_available_departments:
+            return redirect("tasks:profile_department_update")
 
     tasks = _visible_tasks_for_user(request.user)
-    priority_summary = tasks.filter(status__in=[Task.TODO, Task.IN_PROGRESS]).values("priority").annotate(total=Count("id")).order_by("priority")
-    priority_choices = dict(Task.PRIORITY_CHOICES)
 
 
     context = {

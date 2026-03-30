@@ -155,18 +155,26 @@ class OrganizationSignupForm(forms.Form):
         profile, _ = Profile.objects.get_or_create(user=user)
         profile.app_purpose = self.cleaned_data.get("app_purpose") or "PERSONAL"
         profile.organization_id = (self.cleaned_data.get("organization_id") or "").strip()
+
         referred_profile = self.cleaned_data.get("referred_profile")
         if referred_profile:
             profile.referred_by = referred_profile.user
+
         profile.staff_id = (self.cleaned_data.get("staff_id") or "").strip()
         profile.save()
 
         department_name = (self.cleaned_data.get("department_name") or "").strip()
-        if profile.app_purpose == "TEAM" and department_name and profile.organization_id:
-            department, _ = Department.objects.get_or_create(
-                name=department_name,
-                organization_id=profile.organization_id,
-                defaults={"description": ""},
-            )
-            profile.department = department
+
+        if profile.app_purpose == "TEAM":
+            if department_name and profile.organization_id:
+                department, _ = Department.objects.get_or_create(
+                    name=department_name,
+                    organization_id=profile.organization_id,
+                    defaults={"description": ""},
+                )
+                profile.department = department
+
+            elif referred_profile and referred_profile.department:
+                profile.department = referred_profile.department
+
             profile.save(update_fields=["department"])
