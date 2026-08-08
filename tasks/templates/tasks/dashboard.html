@@ -1,55 +1,211 @@
 {% extends "tasks/base_tasks.html" %}
 {% block title %}Dashboard{% endblock %}
+
 {% block content %}
+<style>
+  /* Scoped Dashboard Styles */
+  .soft-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .metric-card {
+    border-radius: 14px;
+    border: none;
+    transition: all 0.2s ease-in-out;
+  }
+  .metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+  }
+  .icon-wrapper {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  details.referral-generator-card > summary {
+    list-style: none;
+  }
+  details.referral-generator-card > summary::-webkit-details-marker {
+    display: none;
+  }
+  .table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,0.015);
+  }
+</style>
+
+<!-- Header Section -->
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
   <div>
-    <h2 class="mb-1">Task Dashboard</h2>
+    <h2 class="mb-1 fw-bold text-dark">Task Dashboard</h2>
     <p class="text-muted mb-0">Track assignments, progress, and team workload.</p>
   </div>
 
-  <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end ms-auto">
+  <div class="d-flex align-items-center gap-3 flex-wrap justify-content-end ms-auto">
     {% if show_referral_code %}
-    <div class="card border-0 shadow-sm" style="border-radius: 18px; min-width: 320px; background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%);">
-      <div class="card-body py-3 px-3 d-flex align-items-center justify-content-between gap-3">
-        <div>
-          <div class="small text-uppercase text-muted fw-semibold mb-1" style="letter-spacing: .06em;">Referral Code</div>
-          <div class="fw-bold fs-5 text-primary">{{ referral_code }}</div>
-          <div class="text-muted small">Invite team members into your organization</div>
+      <details class="referral-generator-card card border-0 shadow-sm" style="border-radius: 16px; min-width: 280px; max-width: 360px; background: linear-gradient(135deg, #f0f6ff 0%, #e6efff 100%);">
+        <summary class="card-body py-2 px-3 d-flex align-items-center justify-content-between gap-3" style="cursor: pointer;">
+          <div class="d-flex flex-column">
+            <span class="small text-uppercase text-primary fw-bold" style="letter-spacing: .05em; font-size: 0.7rem;">Referral Code</span>
+            <span class="fw-bold text-dark small text-break">{{ referral_code }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            {% if selected_referral_department %}
+              <span class="badge rounded-pill bg-white text-primary border border-primary-subtle shadow-sm">{{ selected_referral_department.name }}</span>
+            {% elif can_manage_all_referral_departments %}
+              <span class="badge rounded-pill bg-white text-secondary border shadow-sm">General</span>
+            {% else %}
+              <span class="badge rounded-pill bg-white text-muted border shadow-sm">No Dept</span>
+            {% endif %}
+            <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm"
+                    type="button"
+                    onclick="event.preventDefault(); event.stopPropagation(); navigator.clipboard.writeText('{{ referral_code|escapejs }}');">
+              Copy
+            </button>
+          </div>
+        </summary>
+
+        <div class="px-3 pb-3 pt-2 bg-white rounded-bottom" style="border-radius: 0 0 16px 16px;">
+          <form method="get" id="referralDepartmentForm" class="pt-2 border-top border-light">
+            <label for="ref_department" class="form-label small text-muted fw-semibold mb-1">Preferred Department</label>
+
+            {% if can_manage_all_referral_departments %}
+              <select name="ref_department" id="ref_department" class="form-select form-select-sm rounded-3 bg-light border-0" onchange="document.getElementById('referralDepartmentForm').submit()">
+                <option value="">General organization invite</option>
+                {% for department in referral_departments %}
+                  <option value="{{ department.id }}" {% if selected_referral_department and selected_referral_department.id == department.id %}selected{% endif %}>
+                    {{ department.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <input type="hidden" name="ref_department" value="{% if selected_referral_department %}{{ selected_referral_department.id }}{% endif %}">
+              <div class="form-control form-control-sm rounded-3 bg-light border-0 text-muted">
+                {% if selected_referral_department %}
+                  {{ selected_referral_department.name }}
+                {% else %}
+                  Department not assigned
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <div class="form-text mt-2" style="font-size: 0.75rem;">
+              {% if can_manage_all_referral_departments %}
+                {% if selected_referral_department %}
+                  Generated for <strong>{{ selected_referral_department.name }}</strong>.
+                {% else %}
+                  Select a department for specific invites.
+                {% endif %}
+              {% else %}
+                {% if selected_referral_department %}
+                  Restricted to your assigned department.
+                {% else %}
+                  Assign a department to generate department codes.
+                {% endif %}
+              {% endif %}
+            </div>
+          </form>
         </div>
-        <button class="btn btn-sm btn-outline-primary rounded-pill px-3"
-                type="button"
-                onclick="navigator.clipboard.writeText('{{ referral_code }}')">
-          Copy
-        </button>
-      </div>
-    </div>
+      </details>
     {% endif %}
 
-    <a href="{% url 'tasks:task_create' %}" class="btn btn-primary btn-lg rounded-pill">
-      <i class="fa-solid fa-plus"></i> New Task
+    <a href="{% url 'tasks:task_create' %}" class="btn btn-primary btn-lg rounded-pill shadow-sm px-4">
+      <i class="fa-solid fa-plus me-1"></i> New Task
     </a>
   </div>
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-lg-6">
-    <div class="card soft-card p-4 h-100">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Tasks by Status</h5>
-        <span class="badge bg-light text-dark">Live Overview</span>
+<!-- Metrics Row -->
+<div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-xl-auto d-flex justify-content-xl-between g-3 mb-4">
+  <div class="col flex-fill">
+    <div class="card metric-card bg-primary bg-opacity-10 p-3 h-100">
+      <div class="icon-wrapper bg-primary text-white shadow-sm"><i class="fa-solid fa-layer-group"></i></div>
+      <small class="text-primary fw-bold text-uppercase" style="font-size: 0.75rem;">Total</small>
+      <h3 class="mb-0 text-primary fw-bolder">{{ total_tasks }}</h3>
+    </div>
+  </div>
+  <div class="col flex-fill">
+    <a href="{% url 'tasks:task_list' %}?task_nature=UNFINISHED_WORK" class="text-decoration-none">
+      <div class="card metric-card bg-secondary bg-opacity-10 p-3 h-100">
+        <div class="icon-wrapper bg-secondary text-white shadow-sm"><i class="fa-solid fa-clipboard-list"></i></div>
+        <small class="text-secondary fw-bold text-uppercase" style="font-size: 0.75rem;">Unfinished</small>
+        <h3 class="mb-0 text-secondary fw-bolder">{{ unfinished_count }}</h3>
       </div>
-      <div style="height: 320px;">
+    </a>
+  </div>
+  <div class="col flex-fill">
+    <a href="{% url 'tasks:task_list' %}?status={{ status_todo }}" class="text-decoration-none">
+      <div class="card metric-card bg-light p-3 h-100 border border-light">
+        <div class="icon-wrapper bg-dark text-white shadow-sm"><i class="fa-solid fa-list-ul"></i></div>
+        <small class="text-muted fw-bold text-uppercase" style="font-size: 0.75rem;">To Do</small>
+        <h3 class="mb-0 text-dark fw-bolder">{{ todo_count }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col flex-fill">
+    <a href="{% url 'tasks:task_list' %}?status={{ status_in_progress }}" class="text-decoration-none">
+      <div class="card metric-card bg-info bg-opacity-10 p-3 h-100">
+        <div class="icon-wrapper bg-info text-white shadow-sm"><i class="fa-solid fa-spinner"></i></div>
+        <small class="text-info fw-bold text-uppercase" style="font-size: 0.75rem;">In Progress</small>
+        <h3 class="mb-0 text-info fw-bolder">{{ progress_count }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col flex-fill">
+    <a href="{% url 'tasks:task_list' %}?status={{ status_done }}" class="text-decoration-none">
+      <div class="card metric-card bg-success bg-opacity-10 p-3 h-100">
+        <div class="icon-wrapper bg-success text-white shadow-sm"><i class="fa-solid fa-check-circle"></i></div>
+        <small class="text-success fw-bold text-uppercase" style="font-size: 0.75rem;">Done</small>
+        <h3 class="mb-0 text-success fw-bolder">{{ done_count }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col flex-fill">
+    <a href="{% url 'tasks:task_list' %}?status={{ status_blocked }}" class="text-decoration-none">
+      <div class="card metric-card bg-danger bg-opacity-10 p-3 h-100">
+        <div class="icon-wrapper bg-danger text-white shadow-sm"><i class="fa-solid fa-ban"></i></div>
+        <small class="text-danger fw-bold text-uppercase" style="font-size: 0.75rem;">Blocked</small>
+        <h3 class="mb-0 text-danger fw-bolder">{{ blocked_count }}</h3>
+      </div>
+    </a>
+  </div>
+  <div class="col flex-fill">
+    <a href="{% url 'tasks:task_list' %}?assignee=me" class="text-decoration-none">
+      <div class="card metric-card bg-warning bg-opacity-10 p-3 h-100">
+        <div class="icon-wrapper bg-warning text-dark shadow-sm"><i class="fa-solid fa-user"></i></div>
+        <small class="text-warning-emphasis fw-bold text-uppercase" style="font-size: 0.75rem;">Assigned to Me</small>
+        <h3 class="mb-0 text-warning-emphasis fw-bolder">{{ my_tasks_count }}</h3>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="card soft-card p-4 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>Tasks by Status</h5>
+        <span class="badge rounded-pill bg-light text-dark border">Live Overview</span>
+      </div>
+      <div style="height: 300px; position: relative;">
         <canvas id="statusPieChart"></canvas>
       </div>
     </div>
   </div>
   <div class="col-lg-6">
     <div class="card soft-card p-4 h-100">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Tasks by Priority</h5>
-        <span class="badge bg-light text-dark">Current Breakdown</span>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-chart-bar me-2 text-primary"></i>Tasks by Priority</h5>
+        <span class="badge rounded-pill bg-light text-dark border">Current Breakdown</span>
       </div>
-      <div style="height: 320px;">
+      <div style="height: 300px; position: relative;">
         <canvas id="priorityPieChart"></canvas>
       </div>
     </div>
@@ -61,95 +217,72 @@
 {{ priority_chart_labels|json_script:"priority-chart-labels" }}
 {{ priority_chart_data|json_script:"priority-chart-data" }}
 
-<div class="row g-3 mb-4">
-  <div class="col-md-2"><div class="card soft-card p-3"><small>Total</small><h3>{{ total_tasks }}</h3></div></div>
-  <div class="col-md-2">
-    <a href="{% url 'tasks:task_list' %}?status={{ status_todo }}" class="text-decoration-none text-dark">
-      <div class="card soft-card p-3">
-        <small>To Do</small>
-        <h3>{{ todo_count }}</h3>
-      </div>
-    </a>
-  </div>
-  <div class="col-md-2">
-    <a href="{% url 'tasks:task_list' %}?status={{ status_in_progress }}" class="text-decoration-none text-dark">
-      <div class="card soft-card p-3">
-        <small>In Progress</small>
-        <h3>{{ progress_count }}</h3>
-      </div>
-    </a>
-  </div>
-  <div class="col-md-2">
-    <a href="{% url 'tasks:task_list' %}?status={{ status_done }}" class="text-decoration-none text-dark">
-      <div class="card soft-card p-3">
-        <small>Done</small>
-        <h3>{{ done_count }}</h3>
-      </div>
-    </a>
-  </div>
-  <div class="col-md-2">
-    <a href="{% url 'tasks:task_list' %}?status={{ status_blocked }}" class="text-decoration-none text-dark">
-      <div class="card soft-card p-3">
-        <small>Blocked</small>
-        <h3>{{ blocked_count }}</h3>
-      </div>
-    </a>
-  </div>
-  <div class="col-md-2">
-    <a href="{% url 'tasks:task_list' %}?assignee=me" class="text-decoration-none text-dark">
-      <div class="card soft-card p-3">
-        <small>Assigned To Me</small>
-        <h3>{{ my_tasks_count }}</h3>
-      </div>
-    </a>
-  </div>
-</div>
-
-<div class="card soft-card p-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Recent Tasks</h4>
-    <a href="{% url 'tasks:task_list' %}" class="btn btn-outline-dark rounded-pill">View All</a>
+<!-- Recent Tasks Table -->
+<div class="card soft-card overflow-hidden">
+  <div class="d-flex justify-content-between align-items-center p-4 border-bottom border-light">
+    <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Recent Tasks</h5>
+    <a href="{% url 'tasks:task_list' %}" class="btn btn-sm btn-outline-dark rounded-pill px-3">View All</a>
   </div>
 
   <div class="table-responsive">
-    <table class="table align-middle">
-      <thead>
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light text-muted small">
         <tr>
-          <th>Task</th>
-          <th>Status</th>
-          <th>Priority</th>
-          <th>Assigned To</th>
-          <th>Due Date</th>
-          <th>Department</th>
-          <th>Link</th>
+          <th class="ps-4 py-3 fw-semibold">Task Title</th>
+          <th class="py-3 fw-semibold">Status</th>
+          <th class="py-3 fw-semibold">Priority</th>
+          <th class="py-3 fw-semibold">Assigned To</th>
+          <th class="py-3 fw-semibold">Due Date</th>
+          <th class="py-3 fw-semibold">Department</th>
+          <th class="pe-4 py-3 fw-semibold text-end">Action</th>
         </tr>
       </thead>
       <tbody>
         {% for task in recent_tasks %}
         <tr>
-          <td><a href="{{ task.get_absolute_url }}" class="text-decoration-none fw-semibold">{{ task.title }}</a></td>
-          <td><span class="badge bg-secondary">{{ task.get_status_display }}</span></td>
-          <td><span class="badge bg-info text-dark">{{ task.get_priority_display }}</span></td>
-          <td><span class="badge bg-light text-dark">{{ task.assigned_to|default:"-" }}</span></td>
-          <td><span class="badge bg-warning text-dark">{{ task.due_date|default:"-" }}</span></td>
-          <td><span class="badge bg-dark">{{ task.department.name|default:"-" }}</span></td>
-          <td>
+          <td class="ps-4 py-3">
+            <a href="{{ task.get_absolute_url }}" class="text-decoration-none fw-bold text-dark">{{ task.title }}</a>
+          </td>
+          <td class="py-3"><span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle">{{ task.get_status_display }}</span></td>
+          <td class="py-3"><span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info-subtle">{{ task.get_priority_display }}</span></td>
+          <td class="py-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted" style="width: 28px; height: 28px; font-size: 0.7rem;">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <span class="text-dark fw-medium">{{ task.assigned_to|default:"Unassigned" }}</span>
+            </div>
+          </td>
+          <td class="py-3 text-muted small fw-medium">
+            <i class="fa-regular fa-calendar me-1"></i> {{ task.due_date|default:"No Date" }}
+          </td>
+          <td class="py-3"><span class="badge rounded-pill bg-dark text-white">{{ task.department.name|default:"-" }}</span></td>
+          <td class="pe-4 py-3 text-end">
             {% if task.attachment_link %}
-              <a href="{{ task.attachment_link }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary rounded-pill">
-                Open
+              <a href="{{ task.attachment_link }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light rounded-pill px-3 shadow-sm border">
+                Open Link <i class="fa-solid fa-arrow-up-right-from-square ms-1" style="font-size: 0.7rem;"></i>
               </a>
             {% else %}
-              -
+              <span class="text-muted small">-</span>
             {% endif %}
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="text-center text-muted py-4">No tasks yet.</td></tr>
+        <tr>
+          <td colspan="7" class="text-center text-muted py-5">
+            <div class="d-flex flex-column align-items-center">
+              <i class="fa-regular fa-folder-open text-light mb-3" style="font-size: 3rem;"></i>
+              <p class="mb-0 fw-medium">No tasks found yet.</p>
+              <small>Create your first task to see it here.</small>
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
@@ -158,6 +291,48 @@
   const priorityChartLabelsEl = document.getElementById('priority-chart-labels');
   const priorityChartDataEl = document.getElementById('priority-chart-data');
 
+  // Shared chart options
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '70%', // Changed to doughnut for a modern look
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+          font: { family: "'Inter', sans-serif", size: 12, weight: '500' }
+        }
+      },
+      datalabels: {
+        color: '#ffffff',
+        font: { weight: 'bold' },
+        formatter: (value, context) => {
+          const data = context.chart.data.datasets[0].data;
+          const total = data.reduce((sum, item) => sum + item, 0);
+          if (!total || !value) return '';
+          let percentage = ((value / total) * 100).toFixed(0);
+          return percentage > 5 ? percentage + '%' : ''; // Only show if > 5% to avoid clutter
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        cornerRadius: 8,
+        callbacks: {
+          label: function(context) {
+            const data = context.dataset.data;
+            const total = data.reduce((sum, item) => sum + item, 0);
+            const value = context.raw;
+            const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
+            return ` ${context.label}: ${value} (${percentage}%)`;
+          }
+        }
+      }
+    }
+  };
+
   if (statusChartLabelsEl && statusChartDataEl) {
     const statusChartLabels = JSON.parse(statusChartLabelsEl.textContent);
     const statusChartData = JSON.parse(statusChartDataEl.textContent);
@@ -165,50 +340,18 @@
 
     if (statusCtx) {
       new Chart(statusCtx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
           labels: statusChartLabels,
           datasets: [{
             data: statusChartData,
-            backgroundColor: ['#60a5fa', '#f59e0b', '#10b981', '#ef4444'],
+            backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444'], // Modern blue, amber, emerald, red
             borderColor: '#ffffff',
-            borderWidth: 2
+            borderWidth: 3,
+            hoverOffset: 4
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom'
-            },
-            datalabels: {
-              color: '#ffffff',
-              font: {
-                weight: '700'
-              },
-              formatter: function(value, context) {
-                const data = context.chart.data.datasets[0].data;
-                const total = data.reduce((sum, item) => sum + item, 0);
-                if (!total || !value) {
-                  return '';
-                }
-                return ((value / total) * 100).toFixed(1) + '%';
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const data = context.dataset.data;
-                  const total = data.reduce((sum, item) => sum + item, 0);
-                  const value = context.raw;
-                  const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
-                  return `${context.label}: ${value} (${percentage}%)`;
-                }
-              }
-            }
-          }
-        }
+        options: commonOptions
       });
     }
   }
@@ -220,50 +363,18 @@
 
     if (priorityCtx) {
       new Chart(priorityCtx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
           labels: priorityChartLabels,
           datasets: [{
             data: priorityChartData,
-            backgroundColor: ['#a78bfa', '#38bdf8', '#facc15', '#fb7185', '#34d399'],
+            backgroundColor: ['#8b5cf6', '#0ea5e9', '#eab308', '#f43f5e', '#14b8a6'], // Modern purple, sky, yellow, rose, teal
             borderColor: '#ffffff',
-            borderWidth: 2
+            borderWidth: 3,
+            hoverOffset: 4
           }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom'
-            },
-            datalabels: {
-              color: '#ffffff',
-              font: {
-                weight: '700'
-              },
-              formatter: function(value, context) {
-                const data = context.chart.data.datasets[0].data;
-                const total = data.reduce((sum, item) => sum + item, 0);
-                if (!total || !value) {
-                  return '';
-                }
-                return ((value / total) * 100).toFixed(1) + '%';
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const data = context.dataset.data;
-                  const total = data.reduce((sum, item) => sum + item, 0);
-                  const value = context.raw;
-                  const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
-                  return `${context.label}: ${value} (${percentage}%)`;
-                }
-              }
-            }
-          }
-        }
+        options: commonOptions
       });
     }
   }
