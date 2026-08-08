@@ -9,6 +9,7 @@ from .models import Task, Department, Profile
 from django.conf import settings
 from django.core.mail import send_mail
 from openai import OpenAI
+from django.core.paginator import Paginator
 
 
 def _visible_tasks_for_user(user):
@@ -90,7 +91,7 @@ def task_list(request):
     tasks = _visible_tasks_for_user(request.user)
 
     keyword = (request.GET.get("q") or "").strip()
-    status = (request.GET.get("status") or "").strip()
+    raw_status = (request.GET.get("status") or "").strip()
     status_aliases = {
         "progress": Task.IN_PROGRESS,
         "in-progress": Task.IN_PROGRESS,
@@ -99,27 +100,33 @@ def task_list(request):
         "done": Task.DONE,
         "blocked": Task.BLOCKED,
     }
-    status = status_aliases.get(status.lower(), status)
+    status = status_aliases.get(raw_status.lower(), raw_status)
     priority = (request.GET.get("priority") or "").strip()
+    task_nature = (request.GET.get("task_nature") or Task.ORDINARY).strip()
     assignee = (request.GET.get("assignee") or request.GET.get("assigned") or "").strip()
     department = (request.GET.get("department") or "").strip()
     scope = (request.GET.get("scope") or "all").strip()
 
     if keyword:
         tasks = tasks.filter(
-            Q(title__icontains=keyword) |
-            Q(description__icontains=keyword) |
-            Q(attachment_link__icontains=keyword) |
-            Q(created_by__username__icontains=keyword) |
-            Q(assigned_to__username__icontains=keyword) |
-            Q(department__name__icontains=keyword)
+            Q(title__icontains=keyword)
+            | Q(description__icontains=keyword)
+            | Q(attachment_link__icontains=keyword)
+            | Q(created_by__username__icontains=keyword)
+            | Q(assigned_to__username__icontains=keyword)
+            | Q(department__name__icontains=keyword)
         )
 
-    if status:
-        tasks = tasks.filter(status=status)
+    if status == Task.DONE:
+        tasks = tasks.filter(status=Task.DONE)
+    else:
+        tasks = tasks.exclude(status=Task.DONE)
 
     if priority:
         tasks = tasks.filter(priority=priority)
+
+    if task_nature:
+        tasks = tasks.filter(task_nature=task_nature)
 
     if department:
         tasks = tasks.filter(department_id=department)
@@ -155,20 +162,34 @@ def task_list(request):
     elif scope == "assigned":
         tasks = tasks.filter(assigned_to=request.user)
 
+    tasks = tasks.order_by("-created_at")
+    paginator = Paginator(tasks, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    query_params = request.GET.copy()
+    if "page" in query_params:
+        query_params.pop("page")
+
     context = {
-        "tasks": tasks,
+        "tasks": page_obj,
+        "page_obj": page_obj,
+        "is_paginated": page_obj.has_other_pages(),
+        "current_querystring": query_params.urlencode(),
         "keyword": keyword,
         "selected_status": status,
+        "status_done": Task.DONE,
         "selected_priority": priority,
+        "selected_task_nature": task_nature,
         "selected_assignee": assignee,
         "selected_department": department,
         "selected_scope": scope,
         "status_choices": Task.STATUS_CHOICES,
         "priority_choices": Task.PRIORITY_CHOICES,
+        "task_nature_choices": Task.TASK_NATURE_CHOICES,
         "departments": Department.objects.filter(organization_id=user_organization_id).order_by("name") if user_organization_id else Department.objects.none(),
     }
     return render(request, "tasks/task_list.html", context)
-
 
 @login_required
 def task_create(request):

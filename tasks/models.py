@@ -49,11 +49,11 @@ class Task(models.Model):
         (ORGANIZATION, 'Organization'),
     )
 
-    ORIDINARY = 'ORIDINARY'
+    ORDINARY = 'ORDINARY'
     UNFINISHED_WORK = 'UNFINISHED_WORK'
 
     TASK_NATURE_CHOICES = (
-        (ORIDINARY, 'Oridinary Task'),
+        (ORDINARY, 'Oridinary Task'),
         (UNFINISHED_WORK, 'Unfinished Work')
     )
 
@@ -65,7 +65,7 @@ class Task(models.Model):
     attachment_link = models.URLField(null=True, blank=True, help_text='Optional link to Google Drive, OneDrive, or any external resource')
     organization_id = models.CharField(max_length=100, blank=True, db_index=True)
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default=PERSONAL)
-    task_nature = models.CharField(max_length=30, choices=TASK_NATURE_CHOICES, default=ORIDINARY)
+    task_nature = models.CharField(max_length=30, choices=TASK_NATURE_CHOICES, default=ORDINARY)
 
     department = models.ForeignKey(
         Department,

@@ -84,7 +84,7 @@ class TaskForm(forms.ModelForm):
 
                 if not self.instance.pk and "task_nature" in self.fields:
                     # Replace 'GENERAL' with whatever your default choice key is called in your model choices!
-                    self.fields["task_nature"].initial = "ORIDINARY"
+                    self.fields["task_nature"].initial = "ORDINARY"
 
 class DepartmentForm(forms.ModelForm):
     class Meta:

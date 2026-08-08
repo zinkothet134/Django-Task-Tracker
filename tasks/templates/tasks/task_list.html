@@ -42,6 +42,20 @@
   </a>
 </div>
 
+<!-- Task Overview Chart Card (NEW) -->
+<!-- <div class="row mb-4">
+  <div class="col-md-5 col-lg-4">
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-3 h-100">
+      <h6 class="text-secondary fw-bold mb-3 d-flex align-items-center gap-2">
+        <i class="fa-solid fa-chart-pie"></i> Overall Task Status
+      </h6>
+      <div style="position: relative; height: 140px; width: 100%;">
+        <canvas id="taskChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div> -->
+
 <!-- Filter Bar -->
 <form method="get" class="card border-0 shadow-sm p-3 mb-4 rounded-4 bg-white">
   <div class="row g-2 align-items-center">
@@ -213,5 +227,45 @@
   </ul>
 </nav>
 {% endif %}
+
+<!-- Chart.js Script
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const ctx = document.getElementById('taskChart').getContext('2d');
+    
+    const activeCount = {{ active_count|default:0 }};
+    const completedCount = {{ completed_count|default:0 }};
+    
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Active', 'Completed'],
+        datasets: [{
+          data: [activeCount, completedCount],
+          // Matched to your custom CSS pill colors! 
+          // Blue for progress, Green for done
+          backgroundColor: ['#0369a1', '#15803d'], 
+          borderWidth: 0,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { 
+            position: 'right',
+            labels: { 
+                boxWidth: 12,
+                font: { size: 11 }
+            }
+          }
+        },
+        cutout: '70%'
+      }
+    });
+  });
+</script> -->
 
 {% endblock %}
