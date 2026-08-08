@@ -1,5 +1,7 @@
 from django import forms
 from .models import Task, Department, Profile
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 
 class TaskForm(forms.ModelForm):
@@ -50,41 +52,34 @@ class TaskForm(forms.ModelForm):
 
         if user:
             profile = getattr(user, "profile", None)
+    
+            # Safely get app_purpose, defaulting to PERSONAL
+            app_purpose = getattr(profile, "app_purpose", "PERSONAL") if profile else "PERSONAL"
 
             # PERSONAL user → hide org-related fields
-            if profile and getattr(profile, "app_purpose", "PERSONAL") == "PERSONAL":
+            if app_purpose == "PERSONAL":
                 self.fields.pop("department", None)
                 self.fields.pop("assigned_to", None)
 
-            # TEAM user → restrict choices properly
-            elif profile and getattr(profile, "app_purpose", "PERSONAL") == "TEAM":
+            # TEAM user → restrict choices to their organization
+            elif app_purpose == "TEAM" and profile:
                 user_org = (getattr(profile, "organization_id", "") or "").strip()
 
-                if "department" in self.fields:
-                    self.fields["department"].queryset = Department.objects.filter(
-                        organization_id=user_org
-                    ).order_by("name")
+            # Restrict Department Dropdown
+            if "department" in self.fields:
+                self.fields["department"].queryset = Department.objects.filter(
+                    organization_id=user_org
+                ).order_by("name")
 
-                if "assigned_to" in self.fields:
-                    self.fields["assigned_to"].queryset = (
-                        Profile.objects.filter(
-                            organization_id=user_org
-                        )
-                        .select_related("user")
-                        .order_by("user__username")
-                        .values_list("user", flat=True)
-                    )
-                if "assigned_to" in self.fields:
-                    from django.contrib.auth import get_user_model
-                    User = get_user_model()
+            # Restrict Assignee Dropdown to users in the same organization
+            if "assigned_to" in self.fields:
+                self.fields["assigned_to"].queryset = User.objects.filter(
+                    profile__organization_id=user_org
+                ).order_by("username")
 
-                    self.fields["assigned_to"].queryset = User.objects.filter(
-                        profile__organization_id=user_org
-                    ).order_by("username")
-
-                if not self.instance.pk and "task_nature" in self.fields:
-                    # Replace 'GENERAL' with whatever your default choice key is called in your model choices!
-                    self.fields["task_nature"].initial = "ORDINARY"
+            # Default task nature for new (unsaved) tasks
+            if not self.instance.pk and "task_nature" in self.fields:
+                self.fields["task_nature"].initial = "ORDINARY"
 
 class DepartmentForm(forms.ModelForm):
     class Meta:
