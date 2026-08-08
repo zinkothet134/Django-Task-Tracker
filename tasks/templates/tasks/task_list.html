@@ -212,5 +212,30 @@
     </li>
   </ul>
 </nav>
+
+<!--  Pagination -->
+  { % if is_paginated %}
+<nav class="mt-4" aria-label="Task pagination">
+  <ul class="pagination justify-content-center mb-0">
+    <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+      <a class="page-link" href="?{% if current_querystring %}{{ current_querystring }}&{% endif %}page={% if page_obj.has_previous %}{{ page_obj.previous_page_number }}{% else %}1{% endif %}">Previous</a>
+    </li>
+
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+      {% elif num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+        <li class="page-item">
+          <a class="page-link" href="?{% if current_querystring %}{{ current_querystring }}&{% endif %}page={{ num }}">{{ num }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+
+    <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+      <a class="page-link" href="?{% if current_querystring %}{{ current_querystring }}&{% endif %}page={% if page_obj.has_next %}{{ page_obj.next_page_number }}{% else %}{{ page_obj.paginator.num_pages }}{% endif %}">Next</a>
+    </li>
+  </ul>
+</nav>
+  { % endif %}
 {% endif %}
 {% endblock %}

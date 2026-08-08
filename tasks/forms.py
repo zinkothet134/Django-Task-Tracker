@@ -19,6 +19,7 @@ class TaskForm(forms.ModelForm):
             "attachment_link",
             "department",
             "assigned_to",
+            "task_nature",
         ]
         widgets = {
             "title": forms.TextInput(
@@ -27,7 +28,7 @@ class TaskForm(forms.ModelForm):
             "description": forms.Textarea(
                 attrs={
                     "class": "form-control",
-                    "rows": 5,
+                    "rows": 15,
                     "placeholder": "Task description",
                 }
             ),
@@ -41,6 +42,7 @@ class TaskForm(forms.ModelForm):
             "priority": forms.Select(attrs={"class": "form-select"}),
             "department": forms.Select(attrs={"class": "form-select"}),
             "assigned_to": forms.Select(attrs={"class": "form-select"}),
+            "task_nature": forms.Select(attrs={"class": "form-select"}),
         }
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
@@ -79,6 +81,10 @@ class TaskForm(forms.ModelForm):
                     self.fields["assigned_to"].queryset = User.objects.filter(
                         profile__organization_id=user_org
                     ).order_by("username")
+
+                if not self.instance.pk and "task_nature" in self.fields:
+                    # Replace 'GENERAL' with whatever your default choice key is called in your model choices!
+                    self.fields["task_nature"].initial = "ORIDINARY"
 
 class DepartmentForm(forms.ModelForm):
     class Meta:
