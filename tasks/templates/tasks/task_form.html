@@ -1,12 +1,16 @@
 {% extends "tasks/base_tasks.html" %}
-{% block title %}{{ page_title }}{% endblock %}
-{% block content %}
+ {% block title %} 
+ {{ page_title }} 
+ {% endblock %} 
+ {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-8">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2 class="mb-1">{{ page_title }}</h2>
-        <p class="text-muted mb-0">Create and assign work clearly to your team.</p>
+        <p class="text-muted mb-0">
+          Create and assign work clearly to your team.
+        </p>
       </div>
     </div>
 
@@ -20,7 +24,36 @@
         <div class="mb-3">
           <label class="form-label">Description</label>
           {{ form.description }}
+
+          <!-- AI Polish Button and Status Indicator -->
+          <div class="d-flex align-items-center gap-2 mt-2">
+            <button
+              type="button"
+              id="ai-polish-btn"
+              class="btn btn-sm btn-outline-primary rounded-pill"
+            >
+              ✨ Run AI Action
+            </button>
+            <!-- Dynamic Action Selector -->
+  <select id="ai-action-select" class="form-select form-select-sm w-auto">
+    <option value="polish">Polish Grammar & Tone</option>
+    <option value="burmese">Translate to Burmese</option>
+    <option value="concise">Make it Concise</option>
+  </select>
+            <div
+              id="ai-status-container"
+              class="d-none align-items-center gap-1"
+            >
+              <span
+                class="spinner-border spinner-border-sm text-primary"
+                role="status"
+                aria-hidden="true"
+              ></span>
+              <small class="text-muted">Processing with AI...</small>
+            </div>
+          </div>
         </div>
+
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label">Status</label>
@@ -38,27 +71,100 @@
         <div class="mt-3">
           <label class="form-label">Attachment Link</label>
           {{ form.attachment_link }}
-          <div class="form-text">Paste a Google Drive, OneDrive, or any external resource link.</div>
+          <div class="form-text">
+            Paste a Google Drive, OneDrive, or any external resource link.
+          </div>
         </div>
         {% if form.department %}
         <div class="mb-3">
           <label class="form-label">Department</label>
           {{ form.department }}
         </div>
-        {% endif %}
-
-        {% if form.assigned_to %}
+        {% endif %} {% if form.assigned_to %}
         <div class="mt-3">
           <label class="form-label">Assign To</label>
           {{ form.assigned_to }}
         </div>
         {% endif %}
         <div class="mt-4 d-flex gap-2">
-          <button type="submit" class="btn btn-primary rounded-pill">{{ button_text }}</button>
-          <a href="{% url 'tasks:task_list' %}" class="btn btn-outline-secondary rounded-pill">Cancel</a>
+          <button type="submit" class="btn btn-primary rounded-pill">
+            {{ button_text }}
+          </button>
+          <a
+            href="{% url 'tasks:task_list' %}"
+            class="btn btn-outline-secondary rounded-pill"
+            >Cancel</a
+          >
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const polishBtn = document.getElementById("ai-polish-btn");
+    const statusContainer = document.getElementById("ai-status-container");
+
+    // Django automatically assigns id="id_description" to form fields
+    const descriptionField = document.getElementById("id_description");
+
+    if (polishBtn && descriptionField) {
+      polishBtn.addEventListener("click", function () {
+        const rawText = descriptionField.value.trim();
+        const actionType = document.getElementById("ai-action-select").value;
+
+        if (!rawText) {
+          alert("Please type a description before polishing.");
+          return;
+        }
+
+        // Set UI to loading status
+        polishBtn.disabled = true;
+        statusContainer.classList.remove("d-none");
+        statusContainer.classList.add("d-flex");
+
+        // Extract CSRF token from form
+        const csrfToken = document.querySelector(
+          "[name=csrfmiddlewaretoken]",
+        ).value;
+
+        // Make post request to Django backend
+        fetch("{% url 'tasks:polish_text_api' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+          body: JSON.stringify({ text: rawText, action:actionType }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            if (data.error) {
+              alert("AI Error:" + data.error);
+            } else if (data.polished_text) {
+              descriptionField.value = data.polished_text;
+            }
+          })
+          .catch((error) => {
+            console.error("Error", error);
+            alert(
+              "An error occurred while connecting to the AI polishing service.",
+            );
+          })
+          .finally(() => {
+            // Reset UI State
+            polishBtn.disabled = false;
+            statusContainer.classList.remove("d-flex");
+            statusContainer.classList.add("d-none");
+          });
+      });
+    }
+  });
+</script>
 {% endblock %}

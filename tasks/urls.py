@@ -14,4 +14,7 @@ urlpatterns = [
 
     # Profile / Department
     path("profile/department/", views.profile_department_update, name="profile_department_update"),
+
+    # API Endpoints
+    path("api/polish-text/", views.polish_text_api, name="polish_text_api"),
 ]

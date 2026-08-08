@@ -1,11 +1,14 @@
+import json
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404, redirect, render
-
+from django.http import JsonResponse
 from .forms import TaskForm, DepartmentForm, ProfileDepartmentForm
 from .models import Task, Department, Profile
 from django.conf import settings
 from django.core.mail import send_mail
+from openai import OpenAI
 
 
 def _visible_tasks_for_user(user):
@@ -302,3 +305,41 @@ ChueFamily
             recipient_list=[task.assigned_to.email],
             fail_silently=False,
         )
+
+@login_required
+@require_POST
+def polish_text_api(request):
+    try:
+        data = json.loads(request.body)
+        raw_text = data.get('text', '').strip()
+        action = data.get('action', 'polish')  # Default to polish if missing
+
+        if not raw_text:
+            return JsonResponse({'error': 'No text provided'}, status=400)
+
+        # Dynamically set the system instruction based on user choice
+        if action == 'burmese':
+            system_prompt = "You are a professional translator. Translate the provided task description accurately into natural Burmese. Return ONLY the translated text."
+        elif action == 'concise':
+            system_prompt = "You are a professional editor. Rewrite the following task description to be extremely short and punchy. Return ONLY the revised text."
+        else: # default 'polish'
+            system_prompt = "You are a professional editor. Correct any grammar mistakes and polish the provided task text to be clear, professional, and concise. Return ONLY the polished text."
+
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": raw_text}
+            ],
+            temperature=0.3,
+            max_tokens=500
+        )
+
+        polished_text = response.choices[0].message.content.strip()
+        return JsonResponse({'polished_text': polished_text})
+
+    except Exception as e:
+        print(f"🔥 AI API ERROR: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=400)
