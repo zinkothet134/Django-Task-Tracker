@@ -1,33 +1,36 @@
 {% extends "tasks/base_tasks.html" %}
- {% block title %} 
- {{ page_title }} 
- {% endblock %} 
- {% block content %}
-<div class="row justify-content-center">
+{% block title %} 
+{{ page_title }} 
+{% endblock %} 
+{% block content %}
+<div class="row">
+  <!-- Left Column: Create Task Form -->
   <div class="col-lg-8">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2 class="mb-1">{{ page_title }}</h2>
+        <h2 class="mb-1 fw-bold">{{ page_title }}</h2>
         <p class="text-muted mb-0">
           Create and assign work clearly to your team.
         </p>
       </div>
     </div>
 
-    <div class="card soft-card p-4">
+    <div class="card soft-card p-4 border-0 shadow-sm rounded-4 mb-4">
       <form method="post">
         {% csrf_token %}
         <div class="mb-3">
-          <label class="form-label">Title</label>
+          <label class="form-label fw-semibold">Title</label>
           {{ form.title }}
+          <div class="form-text text-muted">Keep it short, clear, and actionable.</div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Description</label>
-          {{ form.description }}
 
-          <!-- AI Polish Controls & Subscription Banner Wrapper -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Description</label>
+          {{ form.description }}
+          <div class="form-text text-muted">Add more details, steps, or context for your team.</div>
+
+          <!-- AI Polish Controls Box -->
           <div class="mt-3 p-3 rounded-4 bg-light border">
-            
             <!-- AI Action Buttons Row -->
             <div class="d-flex align-items-center flex-wrap gap-2">
               <button
@@ -59,81 +62,147 @@
               </div>
             </div>
 
-            <!-- Subscription Upgrade Notice for Free Users -->
-            {% if not request.user.profile.has_active_subscription %}
-            <div class="mt-3 pt-2 border-top text-secondary small">
-              <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-                <div>
-                  <i class="fa-solid fa-lock text-warning me-1"></i> 
-                  <strong>AI Tools are locked.</strong> Upgrade to Premium to unlock AI grammar checking and Burmese translations.
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="text-muted">Buy via KPay / TrueMoney:</span>
-                  <!-- Replace with your actual Facebook Page / Messenger Link -->
-                  <a href="https://m.me/1179680635235688" target="_blank" class="btn btn-sm btn-primary py-0 px-2 rounded-pill">
-                    <i class="fa-brands fa-facebook me-1"></i> Messenger
-                  </a>
-                  <!-- Replace with your Line or Phone Contact (e.g., tel: or https://line.me/...) -->
-                  <a href="https://line.me/ti/p/chuefamily_123" target="_blank" class="btn btn-sm btn-success py-0 px-2 rounded-pill">
-                    <i class="fa-brands fa-line me-1"></i> Line
-                  </a>
-                </div>
-              </div>
+            <div class="mt-2 text-muted" style="font-size: 0.85rem;">
+              AI features are available for Premium users.
             </div>
-            {% endif %}
-
           </div>
         </div>
 
         <div class="row g-3">
           <div class="col-md-4">
-            <label class="form-label">Status</label>
+            <label class="form-label fw-semibold">Status</label>
             {{ form.status }}
           </div>
           <div class="col-md-4">
-            <label class="form-label">Priority</label>
+            <label class="form-label fw-semibold">Priority</label>
             {{ form.priority }}
           </div>
-         
           <div class="col-md-4">
-            <label class="form-label">Due Date</label>
+            <label class="form-label fw-semibold">Due Date</label>
             {{ form.due_date }}
           </div>
-           <div class="mb-3">
-            <label class="form-label">Task Type</label>
-            {{ form.task_nature}}
-            <div class="form-text">Choose <strong>Unfinished Work</strong> for ongoing tasks you update regularly.</div>
-          </div>
         </div>
+
         <div class="mt-3">
-          <label class="form-label">Attachment Link</label>
+          <label class="form-label fw-semibold">Task Type</label>
+          {{ form.task_nature }}
+          <div class="form-text text-muted">Helps organize and filter tasks easily.</div>
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label fw-semibold">Attachment Link</label>
           {{ form.attachment_link }}
-          <div class="form-text">
+          <div class="form-text text-muted">
             Paste a Google Drive, OneDrive, or any external resource link.
           </div>
         </div>
+
         {% if form.department %}
-        <div class="mb-3">
-          <label class="form-label">Department</label>
+        <div class="mt-3">
+          <label class="form-label fw-semibold">Department</label>
           {{ form.department }}
         </div>
-        {% endif %} {% if form.assigned_to %}
+        {% endif %} 
+
+        {% if form.assigned_to %}
         <div class="mt-3">
-          <label class="form-label">Assign To</label>
+          <label class="form-label fw-semibold">Assign To</label>
           {{ form.assigned_to }}
         </div>
         {% endif %}
+
         <div class="mt-4 d-flex gap-2">
-          <button type="submit" class="btn btn-primary rounded-pill">
-            {{ button_text }}
+          <button type="submit" class="btn btn-primary rounded-pill px-4">
+            ✓ {{ button_text }}
           </button>
           <a
             href="{% url 'tasks:task_list' %}"
-            class="btn btn-outline-secondary rounded-pill"
+            class="btn btn-outline-secondary rounded-pill px-4"
             >Cancel</a
           >
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Right Column: Static Promotional & Pricing Sidebar (Matches Screenshot) -->
+  <div class="col-lg-4">
+    <!-- AI Assistant Feature Box -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white position-relative overflow-hidden">
+      <div class="badge bg-purple-soft text-purple mb-2 py-2 px-3 rounded-pill fw-semibold" style="width: fit-content; background-color: #f3e8ff; color: #7c3aed;">
+        ★ Premium Feature
+      </div>
+      <h4 class="fw-bold mb-1">AI Assistant for <span class="text-primary">Premium</span> Users</h4>
+      <p class="text-muted small mb-4">
+        Unlock the power of AI to work smarter and communicate professionally.
+      </p>
+
+      <!-- Feature Item 1 -->
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <div class="p-2 rounded-3 bg-purple-soft" style="background-color: #f3e8ff; color: #7c3aed;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Polish Grammar & Tone</h6>
+          <p class="text-muted small mb-0">Instantly improve your grammar, clarity, and tone to sound more professional.</p>
+        </div>
+      </div>
+
+      <!-- Feature Item 2 -->
+      <div class="d-flex align-items-start gap-3 mb-3">
+        <div class="p-2 rounded-3 bg-primary-soft" style="background-color: #e0f2fe; color: #0284c7;">
+          <i class="fa-solid fa-language"></i>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Translate Effortlessly</h6>
+          <p class="text-muted small mb-0">Translate your text between Burmese, English, and Thai with accuracy.</p>
+        </div>
+      </div>
+
+      <!-- Feature Item 3 -->
+      <div class="d-flex align-items-start gap-3">
+        <div class="p-2 rounded-3 bg-success-soft" style="background-color: #dcfce7; color: #16a34a;">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+        <div>
+          <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">Save Time & Boost Productivity</h6>
+          <p class="text-muted small mb-0">Let AI handle the details so you can focus on what matters most.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subscription Pricing Box -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-warning-soft position-relative overflow-hidden" style="background: linear-gradient(135deg, #fffbeb 0% , #fef3c7 100%); border: 1px solid #fde68a !important;">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="fs-5">👑</span>
+        <h5 class="fw-bold mb-0 text-dark">Premium Subscription</h5>
+      </div>
+      <p class="text-muted small mb-3">Get unlimited access to all AI features.</p>
+
+      <!-- Pricing Row -->
+      <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded-3 mb-3 shadow-sm">
+        <div class="text-center px-2">
+          <h5 class="fw-bold text-primary mb-0">4,000 MMK</h5>
+          <small class="text-muted" style="font-size: 0.75rem;">per month</small>
+        </div>
+        <div class="text-muted fw-bold">OR</div>
+        <div class="text-center px-2">
+          <h5 class="fw-bold text-primary mb-0">350 THB</h5>
+          <small class="text-muted" style="font-size: 0.75rem;">per month</small>
+        </div>
+      </div>
+
+      <!-- Upgrade Button (Links to Messenger/Line or Upgrade flow) -->
+      <a href="https://m.me/1179680635235688" target="_blank" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); border: none;">
+        <span>★</span> Upgrade to Premium
+      </a>
+
+      <!-- Security / Guarantee Subtext -->
+      <div class="d-flex justify-content-center align-items-center gap-3 mt-3 text-muted" style="font-size: 0.75rem;">
+        <span><i class="fa-solid fa-shield-halved me-1"></i> Cancel anytime</span>
+        <span>•</span>
+        <span><i class="fa-solid fa-lock me-1"></i> Secure payment</span>
+      </div>
     </div>
   </div>
 </div>
@@ -144,7 +213,6 @@
     const statusContainer = document.getElementById("ai-status-container");
     const descriptionField = document.getElementById("id_description");
 
-    // Only add listener if button exists and is not disabled
     if (polishBtn && descriptionField && !polishBtn.hasAttribute("disabled")) {
       polishBtn.addEventListener("click", function () {
         const rawText = descriptionField.value.trim();

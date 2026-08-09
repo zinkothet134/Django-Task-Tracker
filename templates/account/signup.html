@@ -4,176 +4,353 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Up</title>
+  <title>Sign Up | TaskFlow</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  
   <style>
+    :root {
+      --brand-primary: #4f46e5;
+      --brand-hover: #4338ca;
+      --brand-dark: #0f172a;
+      --surface-color: #ffffff;
+      --bg-color: #f8fafc;
+    }
+
     body {
       min-height: 100vh;
-      background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+      background: radial-gradient(circle at top left, #e0e7ff 0%, #f8fafc 40%, #f1f5f9 100%);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      padding: 2rem 0;
     }
+
+    /* Entrance Animation */
+    .fade-in-up {
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .auth-card {
-      border: 0;
+      border: none;
       border-radius: 24px;
-      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+      box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.02);
+      overflow: hidden;
+      background: var(--surface-color);
+    }
+
+    /* Left Side Branding */
+    .brand-side {
+      background: linear-gradient(135deg, var(--brand-dark) 0%, #1e1b4b 100%);
+      color: white;
+      position: relative;
       overflow: hidden;
     }
-    .brand-side {
-      background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+    
+    .brand-side::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(79, 70, 229, 0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .feature-icon-box {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Form Styles */
+    .form-control, .form-select {
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      font-size: 0.95rem;
+      background-color: #f8fafc;
+      transition: all 0.2s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+      border-color: var(--brand-primary);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+
+    /* Floating labels fix for select */
+    .form-floating > .form-select {
+      padding-top: 1.625rem;
+      padding-bottom: 0.625rem;
+    }
+
+    .btn-main {
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-weight: 600;
+      background: linear-gradient(to right, var(--brand-primary), #6366f1);
+      border: none;
+      color: white;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+    }
+
+    .btn-main:hover {
+      background: linear-gradient(to right, var(--brand-hover), #4f46e5);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px -4px rgba(79, 70, 229, 0.3);
       color: white;
     }
-    .form-control,
-    .form-select {
-      border-radius: 14px;
-      padding: 12px 14px;
-      border: 1px solid #dbe2ea;
-      box-shadow: none;
-    }
-    .form-control:focus,
-    .form-select:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.12);
-    }
-    .btn-main {
-      border-radius: 999px;
-      padding: 12px 18px;
+
+    .section-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.75rem;
       font-weight: 600;
-    }
-    .section-card {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 20px;
-      padding: 20px;
-    }
-    .section-title {
-      font-size: 0.8rem;
-      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #64748b;
-      font-weight: 700;
-      margin-bottom: 14px;
+      letter-spacing: 0.05em;
+      margin: 1.5rem 0;
     }
-    .usage-grid {
+
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .section-divider::before { margin-right: .75em; }
+    .section-divider::after { margin-left: .75em; }
+
+    /* Organization Fields Smooth Collapse */
+    #organization-fields-wrapper {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.3s ease-out;
     }
-    @media (min-width: 768px) {
-      .usage-grid.two-col {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+    
+    #organization-fields-wrapper.is-open {
+      grid-template-rows: 1fr;
+    }
+    
+    #organization-fields {
+      overflow: hidden;
+    }
+
+    .form-text { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
+    
+    /* Responsive tweaks */
+    @media (max-width: 991.98px) {
+      .auth-card { border-radius: 16px; }
+      .brand-side { border-radius: 16px 16px 0 0; }
     }
   </style>
 </head>
 <body>
-<div class="container py-5">
-  <div class="row justify-content-center align-items-center" style="min-height: 90vh;">
+
+<div class="container fade-in-up">
+  <div class="row justify-content-center">
     <div class="col-xl-10 col-lg-11">
       <div class="card auth-card">
         <div class="row g-0">
-          <div class="col-lg-5 brand-side p-5 d-flex flex-column justify-content-between">
-            <div>
-              <h2 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2"></i>TaskFlow</h2>
-              <p class="text-light-emphasis mb-4">Create your account and start assigning work clearly across your team.</p>
+          
+          <!-- Left Side: Brand & Features -->
+          <div class="col-lg-5 brand-side p-4 p-lg-5 d-flex flex-column justify-content-between">
+            <div class="position-relative z-1">
+              <!-- Logo -->
+              <div class="d-flex align-items-center gap-2 mb-4">
+                <div class="bg-white text-primary rounded-3 p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;">
+                  <i class="fa-solid fa-layer-group fs-5"></i>
+                </div>
+                <h3 class="fw-bold mb-0 text-white tracking-tight fs-4">TaskFlow</h3>
+              </div>
+
+              <h2 class="text-white fw-bold fs-3 mb-3" style="line-height: 1.2;">
+                Work organized.<br>Teams aligned.
+              </h2>
+              <p class="text-white text-opacity-75 mb-4 fs-6" style="line-height: 1.5;">
+                TaskFlow helps you manage tasks, coordinate teams, set reminders, and get more done every day --all in one place.
+              </p>
+
+              <div class="d-flex flex-column gap-4 mt-5">
+                <!-- Feature 1 -->
+                <div class="d-flex align-items-center gap-3">
+                  <div class="feature-icon-box text-white">
+                    <i class="fa-solid fa-infinity fs-6"></i>
+                  </div>
+                  <div>
+                    <h6 class="fw-semibold mb-0 text-white fs-6">Free for All Users</h6>
+                    <p class="text-white text-opacity-50 mb-0 small">Create tasks, set reminders, take notes, and manage your work -completely free.</p>
+                  </div>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="d-flex align-items-center gap-3">
+                  <div class="feature-icon-box text-white">
+                    <i class="fa-solid fa-users-rays fs-6"></i>
+                  </div>
+                  <div>
+                    <h6 class="fw-semibold mb-0 text-white fs-6">Better Team & Org Coordination</h6>
+                    <p class="text-white text-opacity-50 mb-0 small">Assign tasks, track progress, share updates, and keep everyone on the same page.</p>
+                  </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="d-flex align-items-center gap-3">
+                  <div class="feature-icon-box text-white">
+                    <i class="fa-solid fa-wand-magic-sparkles fs-6 text-warning"></i>
+                  </div>
+                  <div>
+                    <h6 class="fw-semibold mb-0 text-white fs-6">AI Productivity Tool <span class="badge bg-white text-dark ms-1" style="font-size: 0.6rem;">PREMIUM</span></h6>
+                    <p class="text-white text-opacity-50 mb-0 small">Polish grammar, translate, summarize, and get AI suggestions to work smarter.</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="small text-light-emphasis">Email verification is required before access</div>
+
+            <!-- Trust Tags -->
+            <div class="pt-4 mt-5 border-top border-white border-opacity-10 d-flex gap-3 text-white text-opacity-75 small fw-medium position-relative z-1">
+              <span><i class="fa-solid fa-lock me-1"></i> Secure</span>
+              <span><i class="fa-solid fa-shield-halved me-1"></i> Private</span>
+            </div>
           </div>
 
-          <div class="col-lg-7 bg-white p-5">
-            <div class="mb-4">
-              <h3 class="fw-bold mb-1">Create account</h3>
-              <p class="text-muted mb-0">Register with your email address.</p>
-            </div>
-
-            {% if form.non_field_errors %}
-              <div class="alert alert-danger rounded-4">
-                {{ form.non_field_errors }}
-              </div>
-            {% endif %}
-
-            <form method="post" action="{% url 'account_signup' %}">
-              {% csrf_token %}
-
+          <!-- Right Side: Signup Form -->
+          <div class="col-lg-7 bg-white p-4 p-lg-5">
+            <div class="px-lg-3 py-lg-2">
+              
               <div class="mb-4">
-                <label class="form-label fw-semibold">Email</label>
-                {{ form.email|add_class:"form-control"|attr:"placeholder:Enter your email" }}
-                {% if form.email.errors %}
-                  <div class="text-danger small mt-1">{{ form.email.errors }}</div>
-                {% endif %}
+                <h3 class="fw-bold text-dark fs-3 mb-1">Create your account</h3>
+                <p class="text-muted">Start your journey with TaskFlow today.</p>
               </div>
 
-              <div class="section-card mb-4">
-                <div class="section-title">Usage Setup</div>
+              {% if form.non_field_errors %}
+                <div class="alert alert-danger rounded-3 small mb-4 border-0 bg-danger bg-opacity-10 text-danger">
+                  <i class="fa-solid fa-circle-exclamation me-2"></i>{{ form.non_field_errors }}
+                </div>
+              {% endif %}
 
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">App Purpose</label>
+              <form method="post" action="{% url 'account_signup' %}">
+                {% csrf_token %}
+
+                <!-- Email -->
+                <div class="form-floating mb-3">
+                  {{ form.email|add_class:"form-control"|attr:"placeholder:name@example.com" }}
+                  <label>Email address</label>
+                  {% if form.email.errors %}
+                    <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                  {% endif %}
+                </div>
+
+                <div class="section-divider">Workspace Setup</div>
+
+                <!-- App Purpose -->
+                <div class="form-floating mb-3">
                   {{ form.app_purpose|add_class:"form-select" }}
-                  <div class="form-text">Choose personal productivity or organization team coordination.</div>
+                  <label>How will you use TaskFlow?</label>
                   {% if form.app_purpose.errors %}
                     <div class="text-danger small mt-1">{{ form.app_purpose.errors }}</div>
                   {% endif %}
                 </div>
 
-                <div id="organization-fields" class="usage-grid">
-                  <div class="usage-grid two-col">
-                    <div>
-                      <label class="form-label fw-semibold">Organization ID</label>
-                      {{ form.organization_id|add_class:"form-control"|attr:"placeholder:Enter organization ID" }}
-                      <div class="form-text">Enter this directly or use a referral code.</div>
-                      {% if form.organization_id.errors %}
-                        <div class="text-danger small mt-1">{{ form.organization_id.errors }}</div>
-                      {% endif %}
+                <!-- Expandable Org Fields -->
+                <div id="organization-fields-wrapper">
+                  <div id="organization-fields">
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-6">
+                        <div class="form-floating">
+                          {{ form.organization_id|add_class:"form-control"|attr:"placeholder:Org ID" }}
+                          <label>Organization ID</label>
+                        </div>
+                        {% if form.organization_id.errors %}
+                          <div class="text-danger small mt-1">{{ form.organization_id.errors }}</div>
+                        {% endif %}
+                      </div>
+                      
+                      <div class="col-md-6">
+                        <div class="form-floating">
+                          {{ form.organization_referral_code|add_class:"form-control"|attr:"placeholder:Code" }}
+                          <label>Referral Code</label>
+                        </div>
+                        {% if form.organization_referral_code.errors %}
+                          <div class="text-danger small mt-1">{{ form.organization_referral_code.errors }}</div>
+                        {% endif %}
+                      </div>
                     </div>
-                    <div>
-                      <label class="form-label fw-semibold">Referral Code</label>
-                      {{ form.organization_referral_code|add_class:"form-control"|attr:"placeholder:Enter organization referral code" }}
-                      <div class="form-text">Use this if an existing organization member invited you.</div>
-                      {% if form.organization_referral_code.errors %}
-                        <div class="text-danger small mt-1">{{ form.organization_referral_code.errors }}</div>
+
+                    <div class="form-floating mb-3">
+                      {{ form.staff_id|add_class:"form-control"|attr:"placeholder:Staff ID" }}
+                      <label>Staff ID (Internal)</label>
+                      <div class="form-text">Used to identify you inside your organization.</div>
+                      {% if form.staff_id.errors %}
+                        <div class="text-danger small mt-1">{{ form.staff_id.errors }}</div>
                       {% endif %}
                     </div>
                   </div>
+                </div>
 
-                  <!-- Staff ID is now full-width underneath the two-column grid -->
-                  <div>
-                    <label class="form-label fw-semibold">Staff ID</label>
-                    {{ form.staff_id|add_class:"form-control"|attr:"placeholder:Enter your staff ID" }}
-                    <div class="form-text">Used to identify you inside your organization.</div>
-                    {% if form.staff_id.errors %}
-                      <div class="text-danger small mt-1">{{ form.staff_id.errors }}</div>
+                <div class="section-divider">Security</div>
+
+                <!-- Passwords -->
+                <div class="row g-3 mb-4">
+                  <div class="col-md-6">
+                    <div class="form-floating">
+                      {{ form.password1|add_class:"form-control"|attr:"placeholder:Password" }}
+                      <label>Password</label>
+                    </div>
+                    {% if form.password1.errors %}
+                      <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <div class="form-floating">
+                      {{ form.password2|add_class:"form-control"|attr:"placeholder:Confirm" }}
+                      <label>Confirm Password</label>
+                    </div>
+                    {% if form.password2.errors %}
+                      <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
                     {% endif %}
                   </div>
                 </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn btn-main w-100">
+                  Create Account <i class="fa-solid fa-arrow-right ms-2"></i>
+                </button>
+              </form>
+
+              <!-- Footer -->
+              <div class="mt-4 text-center">
+                <p class="text-muted small mb-0">
+                  Already have an account? 
+                  <a href="{% url 'account_login' %}" class="text-decoration-none fw-semibold" style="color: var(--brand-primary);">Sign in here</a>
+                </p>
               </div>
 
-              <div class="section-card mb-4">
-                <div class="section-title">Security</div>
-
-                <div class="mb-3">
-                  <label class="form-label fw-semibold">Password</label>
-                  {{ form.password1|add_class:"form-control"|attr:"placeholder:Create a password" }}
-                  {% if form.password1.errors %}
-                    <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
-                  {% endif %}
-                </div>
-
-                <div class="mb-0">
-                  <label class="form-label fw-semibold">Confirm Password</label>
-                  {{ form.password2|add_class:"form-control"|attr:"placeholder:Confirm your password" }}
-                  {% if form.password2.errors %}
-                    <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
-                  {% endif %}
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-main w-100">
-                <i class="fa-solid fa-user-plus me-2"></i>Sign Up
-              </button>
-            </form>
-
-            <div class="mt-4 text-center text-muted">
-              Already have an account?
-              <a href="{% url 'account_login' %}" class="text-decoration-none fw-semibold">Login</a>
             </div>
           </div>
         </div>
@@ -181,31 +358,29 @@
     </div>
   </div>
 </div>
+
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const purposeField = document.getElementById("id_app_purpose");
-    const orgSection = document.getElementById("organization-fields");
+    const orgWrapper = document.getElementById("organization-fields-wrapper");
 
     function toggleOrgFields() {
-      if (!purposeField || !orgSection) {
-        return;
-      }
-
-      // Hide the organization section if PERSONAL is selected
+      if (!purposeField || !orgWrapper) return;
+      
+      // Assumes "PERSONAL" is the value that hides the organization fields
       if (purposeField.value === "PERSONAL") {
-        orgSection.style.display = "none";
+        orgWrapper.classList.remove("is-open");
       } else {
-        orgSection.style.display = "grid";
+        orgWrapper.classList.add("is-open");
       }
     }
 
-    // Run on load
     if (purposeField) {
-      toggleOrgFields();
-      // Run on change
+      toggleOrgFields(); // Initial check
       purposeField.addEventListener("change", toggleOrgFields);
     }
   });
 </script>
+
 </body>
 </html>
