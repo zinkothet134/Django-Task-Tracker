@@ -67,9 +67,21 @@ class TaskForm(forms.ModelForm):
 
             # Restrict Department Dropdown
             if "department" in self.fields:
-                self.fields["department"].queryset = Department.objects.filter(
-                    organization_id=user_org
-                ).order_by("name")
+                self.fields["department"].queryset = Department.objects.all().order_by("name")
+
+            # For Phase 2 Setup for Department accessing 
+        #     # Restrict Department Dropdown
+        # if "department" in self.fields:
+        #     if user_org:
+        #         # Show departments that match the user's organization OR global/common departments (blank/null org id)
+        #         self.fields["department"].queryset = Department.objects.filter(
+        #             Q(organization_id=user_org) | Q(organization_id="") | Q(organization_id__isnull=True)
+        #         ).order_by("name")
+        #     else:
+        #         # If the user has no organization, only show global/common departments
+        #         self.fields["department"].queryset = Department.objects.filter(
+        #             Q(organization_id="") | Q(organization_id__isnull=True)
+        #         ).order_by("name")
 
             # Restrict Assignee Dropdown to users in the same organization
             if "assigned_to" in self.fields:
