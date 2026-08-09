@@ -28,14 +28,14 @@ def _visible_tasks_for_user(user):
         visibility_filter |= Q(
             organization_id=user_organization_id,
             visibility=Task.ORGANIZATION,
-        )
+        ) & ~Q(visibility=Task.PERSONAL)
 
         if user_department:
             visibility_filter |= Q(
                 organization_id=user_organization_id,
                 department=user_department,
                 visibility=Task.DEPARTMENT,
-            )
+            ) & ~Q(visibility=Task.PERSONAL)
 
     return tasks.filter(visibility_filter).distinct()
 
@@ -197,7 +197,9 @@ def task_create(request):
     is_personal_user = getattr(profile, "app_purpose", "PERSONAL") == "PERSONAL"
 
     if request.method == "POST":
-        form = TaskForm(request.POST, user=request.user) if is_personal_user else TaskForm(request.POST)
+        # form = TaskForm(request.POST, user=request.user) if is_personal_user else TaskForm(request.POST)
+        # 👇 FIX: Always pass user=request.user
+        form = TaskForm(request.POST, user=request.user)
         if form.is_valid():
             task = form.save(commit=False)
             task.created_by = request.user
@@ -223,7 +225,9 @@ def task_create(request):
             send_task_mail(task)
             return redirect(task.get_absolute_url())
     else:
-        form = TaskForm(user=request.user) if is_personal_user else TaskForm()
+        # form = TaskForm(user=request.user) if is_personal_user else TaskForm()
+        # 👇 FIX: Always pass user=request.user
+        form = TaskForm(user=request.user)
 
     return render(request, "tasks/task_form.html", {
         "form": form,
@@ -330,6 +334,13 @@ ChueFamily
 @login_required
 @require_POST
 def polish_text_api(request):
+    # 1. Check if user has an active subscription via their profile
+    profile = getattr(request.user, "profile", None)
+    if not profile or not profile.has_active_subscription:
+        return JsonResponse({
+            'error': 'ChatGPT features require a premium subscription. Please contact admin to upgrade via KPay or TrueMoney.'
+        }, status=403)
+    
     try:
         data = json.loads(request.body)
         raw_text = data.get('text', '').strip()

@@ -3,7 +3,12 @@ from .models import Task, Department, Profile
 # Register your models here.
 
 admin.site.register(Department)
-admin.site.register(Profile)
+# admin.site.register(Profile)
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'app_purpose', 'organization_id', 'is_premium', 'subscription_expiry')
+    list_filter = ('is_premium', 'app_purpose')
+    search_fields = ('user__email', 'organization_id', 'staff_id')
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):

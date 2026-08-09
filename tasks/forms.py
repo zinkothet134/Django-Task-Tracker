@@ -130,15 +130,15 @@ class OrganizationSignupForm(forms.Form):
             }
         ),
     )
-    department_name = forms.CharField(
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Create your first department for this organization",
-            }
-        ),
-    )
+    # department_name = forms.CharField(
+    #     required=False,
+    #     widget=forms.TextInput(
+    #         attrs={
+    #             "class": "form-control",
+    #             "placeholder": "Create your first department for this organization",
+    #         }
+    #     ),
+    # )
     staff_id = forms.CharField(
         required=False,
         widget=forms.TextInput(
@@ -156,7 +156,7 @@ class OrganizationSignupForm(forms.Form):
         
         organization_referral_code = (cleaned_data.get("organization_referral_code") or "").strip().upper()
         staff_id = (cleaned_data.get("staff_id") or "").strip()
-        department_name = (cleaned_data.get("department_name") or "").strip()
+        # department_name = (cleaned_data.get("department_name") or "").strip()
 
         referred_profile = None
         if organization_referral_code:
@@ -175,8 +175,8 @@ class OrganizationSignupForm(forms.Form):
                 self.add_error("organization_id", "Organization ID or referral code is required for team coordination accounts.")
             if not staff_id:
                 self.add_error("staff_id", "Staff ID is required for team coordination accounts.")
-            if not organization_referral_code and not department_name:
-                self.add_error("department_name", "Department is required when creating a new organization team account.")
+            # if not organization_referral_code and not department_name:
+            #     self.add_error("department_name", "Department is required when creating a new organization team account.")
 
         return cleaned_data
 
@@ -192,18 +192,18 @@ class OrganizationSignupForm(forms.Form):
         profile.staff_id = (self.cleaned_data.get("staff_id") or "").strip()
         profile.save()
 
-        department_name = (self.cleaned_data.get("department_name") or "").strip()
+        # department_name = (self.cleaned_data.get("department_name") or "").strip()
 
-        if profile.app_purpose == "TEAM":
-            if department_name and profile.organization_id:
-                department, _ = Department.objects.get_or_create(
-                    name=department_name,
-                    organization_id=profile.organization_id,
-                    defaults={"description": ""},
-                )
-                profile.department = department
+        # if profile.app_purpose == "TEAM":
+        #     if department_name and profile.organization_id:
+        #         department, _ = Department.objects.get_or_create(
+        #             name=department_name,
+        #             organization_id=profile.organization_id,
+        #             defaults={"description": ""},
+        #         )
+        #         profile.department = department
 
-            elif referred_profile and referred_profile.department:
-                profile.department = referred_profile.department
+        #     elif referred_profile and referred_profile.department:
+        #         profile.department = referred_profile.department
 
-            profile.save(update_fields=["department"])
+        #     profile.save(update_fields=["department"])

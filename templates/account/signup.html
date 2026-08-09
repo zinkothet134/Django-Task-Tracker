@@ -134,23 +134,14 @@
                     </div>
                   </div>
 
-                  <div class="usage-grid two-col">
-                    <div>
-                      <label class="form-label fw-semibold">Staff ID</label>
-                      {{ form.staff_id|add_class:"form-control"|attr:"placeholder:Enter your staff ID" }}
-                      <div class="form-text">Used to identify you inside your organization.</div>
-                      {% if form.staff_id.errors %}
-                        <div class="text-danger small mt-1">{{ form.staff_id.errors }}</div>
-                      {% endif %}
-                    </div>
-                    <div id="department-field-wrap">
-                      <label class="form-label fw-semibold">Department</label>
-                      {{ form.department_name|add_class:"form-control"|attr:"placeholder:Create your first department" }}
-                      <div class="form-text">Only needed when creating a new organization without a referral code.</div>
-                      {% if form.department_name.errors %}
-                        <div class="text-danger small mt-1">{{ form.department_name.errors }}</div>
-                      {% endif %}
-                    </div>
+                  <!-- Staff ID is now full-width underneath the two-column grid -->
+                  <div>
+                    <label class="form-label fw-semibold">Staff ID</label>
+                    {{ form.staff_id|add_class:"form-control"|attr:"placeholder:Enter your staff ID" }}
+                    <div class="form-text">Used to identify you inside your organization.</div>
+                    {% if form.staff_id.errors %}
+                      <div class="text-danger small mt-1">{{ form.staff_id.errors }}</div>
+                    {% endif %}
                   </div>
                 </div>
               </div>
@@ -193,36 +184,26 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const purposeField = document.getElementById("id_app_purpose");
-    const referralField = document.getElementById("id_organization_referral_code");
     const orgSection = document.getElementById("organization-fields");
-    const departmentWrap = document.getElementById("department-field-wrap");
 
     function toggleOrgFields() {
       if (!purposeField || !orgSection) {
         return;
       }
 
-      const isPersonal = purposeField.value === "PERSONAL";
-      const hasReferralCode = referralField && referralField.value.trim() !== "";
-
-      if (isPersonal) {
+      // Hide the organization section if PERSONAL is selected
+      if (purposeField.value === "PERSONAL") {
         orgSection.style.display = "none";
       } else {
         orgSection.style.display = "grid";
       }
-
-      if (departmentWrap) {
-        departmentWrap.style.display = !isPersonal && !hasReferralCode ? "block" : "none";
-      }
     }
 
+    // Run on load
     if (purposeField) {
       toggleOrgFields();
+      // Run on change
       purposeField.addEventListener("change", toggleOrgFields);
-    }
-
-    if (referralField) {
-      referralField.addEventListener("input", toggleOrgFields);
     }
   });
 </script>

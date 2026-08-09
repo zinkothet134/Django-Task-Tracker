@@ -2,14 +2,23 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
+from django.utils import timezone
 
 # Create your models here.
 class Department(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     organization_id = models.CharField(max_length=100, blank=True, db_index=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'organization_id'],
+                name='unique_department_name_per_organization'
+                )
+        ]
 
     def __str__(self):
         return self.name
@@ -134,6 +143,19 @@ class Profile(models.Model):
         related_name="members",
     )
     image = models.ImageField(upload_to="profiles/", null=True, blank=True)
+    is_premium = models.BooleanField(default=False)
+    subscription_expiry = models.DateTimeField(blank=True, null=True)
+
+    @property
+    def has_active_subscription(self):
+        """Checks if the user has an active, non-expired subscription."""
+        if self.is_premium:
+            if self.subscription_expiry:
+                return self.subscription_expiry > timezone.now()
+            # If is_premium is True but no expiry date is set, treat it as active (or lifetime)
+            return True
+        return False
+
     def save(self, *args, **kwargs):
         if self.organization_id and not self.organization_referral_code:
             base_code = slugify(self.organization_id).replace("-", "").upper()[:24] or "ORG"
