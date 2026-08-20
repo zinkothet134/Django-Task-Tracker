@@ -370,7 +370,7 @@ def polish_text_api(request):
                 {"role": "user", "content": raw_text}
             ],
             temperature=0.3,
-            max_tokens=500
+            max_tokens=2500
         )
 
         polished_text = response.choices[0].message.content.strip()
