@@ -351,15 +351,15 @@ def polish_text_api(request):
 
         # Dynamically set the system instruction based on user choice
         if action == 'burmese':
-            system_prompt = "You are a professional translator. Translate the provided task description accurately into natural Burmese. Return ONLY the translated text."
+            system_prompt = "Please translate in Burmese in simple and unstandable sentense."
         elif action == 'english':
-            system_prompt = "You are a professional translator. Translate the provided task description accurately into English. Return ONLY the translated text."
+            system_prompt = "Please translate in English in simple and understanable sentense."
         elif action == 'thai':
             system_prompt = "You are a professional translator. Translate the provided task description accurately into Thai-Language. Return ONLY the translated text."
         elif action == 'concise':
             system_prompt = "You are a professional editor. Rewrite the following task description to be extremely short and punchy. Return ONLY the revised text."
         else: # default 'polish'
-            system_prompt = "You are a professional editor. Correct any grammar mistakes and polish the provided task text to be clear, professional, and concise. Return ONLY the polished text."
+            system_prompt = "Pleae check grammar and polish."
 
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
