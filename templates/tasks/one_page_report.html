@@ -1,0 +1,100 @@
+{% extends "tasks/base_tasks.html" %}
+
+{% block title %}One-Page Activity Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="fa-solid fa-file-word text-primary me-2"></i>One-Page Activity Report</h2>
+      <p class="text-muted mb-0">Turn your TaskFlow notes into a polished English monthly report.</p>
+    </div>
+    <a href="{% url 'tasks:dashboard' %}" class="btn btn-outline-secondary rounded-pill">
+      <i class="fa-solid fa-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-danger border-0 shadow-sm" role="alert" aria-live="polite">
+    <i class="fa-solid fa-circle-exclamation me-1"></i>{{ error }}
+  </div>
+  {% endif %}
+
+  <div class="alert alert-info border-0" role="note">
+    <strong>Draft for human review.</strong>
+    Following your sample, a report for <strong>{{ month_label }}</strong> summarizes
+    <strong>{{ completed_heading }}</strong> and <strong>{{ ongoing_heading }}</strong>.
+    Task creation/edit timestamps are not proof of completion dates. Verify the work, statuses and wording before submitting.
+  </div>
+
+  <div class="card shadow-sm border-0 rounded-4">
+    <div class="card-body p-4">
+      <form method="post" action="{% url 'tasks:one_page_report' %}" id="one-page-form">
+        {% csrf_token %}
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" for="report_month">Report month</label>
+            <input type="month" class="form-control" id="report_month" name="month" value="{{ month }}" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" for="report_name">Employee name</label>
+            <input type="text" class="form-control" id="report_name" name="name" value="{{ name }}" maxlength="100" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" for="report_position">Position</label>
+            <input type="text" class="form-control" id="report_position" name="position" value="{{ position }}" maxlength="100" placeholder="e.g., Project Coordinator" required>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <button type="submit" name="action" value="generate" class="btn btn-primary rounded-pill px-3" data-generates="1">
+            <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate AI Draft
+          </button>
+          <button type="submit" name="action" value="generate_download" class="btn btn-outline-primary rounded-pill px-3" data-generates="1">
+            <i class="fa-solid fa-bolt me-1"></i>Generate &amp; Download Word
+          </button>
+          <button type="submit" name="action" value="download" class="btn btn-success rounded-pill px-3">
+            <i class="fa-solid fa-file-arrow-down me-1"></i>Download Reviewed Word
+          </button>
+        </div>
+
+        {% if task_count %}
+        <p class="small text-muted">Source records: {{ task_count.completed }} candidate completed tasks, {{ task_count.ongoing }} ongoing tasks. Similar items may be combined by AI.</p>
+        {% endif %}
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <label class="form-label fw-bold" for="completed_text">{{ completed_heading }}</label>
+            <textarea class="form-control" id="completed_text" name="completed_text" rows="13" placeholder="Click Generate AI Draft, then review each activity. One activity per line.">{{ completed_text }}</textarea>
+            <div class="form-text">One activity per line. Up to 8 concise points.</div>
+          </div>
+          <div class="col-lg-6">
+            <label class="form-label fw-bold" for="ongoing_text">{{ ongoing_heading }}</label>
+            <textarea class="form-control" id="ongoing_text" name="ongoing_text" rows="13" placeholder="Ongoing activities will appear here. Review and edit before download.">{{ ongoing_text }}</textarea>
+            <div class="form-text">Use ongoing/planned wording for unfinished activities.</div>
+          </div>
+        </div>
+        <p class="small text-muted mt-3 mb-0">English-only Word output. Generating a new draft replaces these two text boxes, not any saved tasks or timesheets. No changes are saved to your database.</p>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var form = document.getElementById('one-page-form');
+  if (!form) return;
+  form.addEventListener('submit', function (event) {
+    var button = event.submitter;
+    if (!button || !button.hasAttribute('data-generates')) return;
+    if (!form.reportValidity()) return;
+    // Disable other generate buttons only; don't disable the clicked submitter
+    // or its name/value will not be included in the POST payload.
+    form.querySelectorAll('[data-generates]').forEach(function (other) {
+      if (other !== button) other.disabled = true;
+    });
+    button.classList.add('opacity-75');
+    button.setAttribute('aria-busy', 'true');
+  });
+})();
+</script>
+{% endblock content %}

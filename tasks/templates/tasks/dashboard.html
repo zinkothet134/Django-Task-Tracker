@@ -115,6 +115,12 @@
       </details>
     {% endif %}
 
+    <a href="{% url 'tasks:monthly_timesheet' %}" class="btn btn-outline-success btn-lg rounded-pill shadow-sm px-4">
+      <i class="fa-solid fa-file-excel me-1"></i> Monthly Timesheet
+    </a>
+    <a href="{% url 'tasks:one_page_report' %}" class="btn btn-outline-primary btn-lg rounded-pill shadow-sm px-3">
+      <i class="fa-solid fa-file-word me-1"></i>One-Page Report
+    </a>
     <a href="{% url 'tasks:task_create' %}" class="btn btn-primary btn-lg rounded-pill shadow-sm px-4">
       <i class="fa-solid fa-plus me-1"></i> New Task
     </a>

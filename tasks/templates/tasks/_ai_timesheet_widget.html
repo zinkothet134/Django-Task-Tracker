@@ -1,0 +1,117 @@
+{# AI draft is only inserted into the form; no timesheet is saved without Save Month. #}
+<button type="button" class="btn btn-outline-primary rounded-pill"
+        id="ai-timesheet-generate"
+        data-ai-url="{% url 'tasks:ai_timesheet_draft' %}"
+        data-month="{{ month }}">
+  <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Generate / Refresh AI Draft
+</button>
+<label class="d-flex align-items-center gap-1 small text-muted my-auto" for="ai-timesheet-replace">
+  <input type="checkbox" id="ai-timesheet-replace" class="form-check-input mt-0">
+  Replace existing workday activities (confirm first)
+</label>
+<small id="ai-timesheet-status" class="text-muted align-self-center" role="status" aria-live="polite"></small>
+<script>
+(function () {
+  function initializeAiTimesheet() {
+    const button = document.getElementById('ai-timesheet-generate');
+    const status = document.getElementById('ai-timesheet-status');
+    const replaceInput = document.getElementById('ai-timesheet-replace');
+    if (!button || !status || button.dataset.initialized === 'true') return;
+    button.dataset.initialized = 'true';
+
+    // Tracks text generated on THIS page so unchanged AI rows can refresh safely.
+    // Text a user edits is not replaced, unless they explicitly opt in.
+    const generated = new Map();
+    const skipTypes = new Set(['LEAVE', 'SICK', 'HOLIDAY', 'OFF']);
+    function rowControls(dateString) {
+      const key = dateString.replace(/-/g, '');
+      return {
+        textarea: document.querySelector(`textarea[name="activities_${key}"]`),
+        dayType: document.querySelector(`select[name="type_${key}"]`),
+      };
+    }
+
+    button.addEventListener('click', async function () {
+      if (button.disabled) return;
+      const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (!csrf) {
+        status.textContent = 'CSRF token missing. Please reload the page.';
+        return;
+      }
+      const replace = Boolean(replaceInput && replaceInput.checked);
+      if (replace && !window.confirm(
+        'Replace existing workday activity text with a newly generated AI draft? ' +
+        'This will overwrite manually edited or saved activity text on matching dates. ' +
+        'Save a copy of your edits first if necessary.'
+      )) return;
+
+      button.disabled = true;
+      status.textContent = 'Checking latest tasks and preparing draft…';
+      try {
+        const result = await fetch(button.dataset.aiUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf.value },
+          body: JSON.stringify({ month: button.dataset.month }),
+        });
+        const response = await result.json();
+        if (!result.ok) throw new Error(response.error || 'Unable to generate draft.');
+        if (!response.task_count) {
+          status.textContent = response.message || 'No relevant tasks found.';
+          return;
+        }
+
+        let filled = 0, refreshed = 0, skipped = 0, cleared = 0;
+        const returnedDates = new Set();
+        for (const day of response.days || []) {
+          if (!day || typeof day.date !== 'string' || typeof day.activities !== 'string') continue;
+          returnedDates.add(day.date);
+          const { textarea, dayType } = rowControls(day.date);
+          if (!textarea || (dayType && skipTypes.has(dayType.value))) {
+            skipped++;
+            continue;
+          }
+          const existing = textarea.value;
+          const isEmpty = !existing.trim();
+          const isUneditedAi = generated.has(day.date) && existing === generated.get(day.date);
+          if (!isEmpty && !isUneditedAi && !replace) {
+            skipped++;
+            continue;
+          }
+          textarea.value = day.activities;
+          generated.set(day.date, day.activities);
+          if (isEmpty) filled++;
+          else refreshed++;
+        }
+
+        // Remove obsolete, unsaved AI text from THIS browser session only.
+        // Saved or manually changed text is never removed automatically.
+        for (const [dateText, oldAiText] of Array.from(generated.entries())) {
+          if (returnedDates.has(dateText)) continue;
+          const { textarea } = rowControls(dateText);
+          if (textarea && textarea.value === oldAiText) {
+            textarea.value = '';
+            generated.delete(dateText);
+            cleared++;
+          }
+        }
+        if (replaceInput) replaceInput.checked = false;
+        const source = response.cached ? 'reused cached AI draft' : 'generated from latest task records';
+        status.textContent = `${response.task_count} task(s); ${filled} filled, ${refreshed} refreshed, ` +
+          `${skipped} existing/leave row(s) skipped, ${cleared} obsolete unsaved row(s) cleared; ${source}. ` +
+          'Review dates, wording and hours, then Save Month before downloading Excel.';
+      } catch (error) {
+        status.textContent = error.message || 'AI generation failed. Existing entries were not saved.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAiTimesheet);
+  } else {
+    initializeAiTimesheet();
+  }
+})();
+</script>

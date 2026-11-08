@@ -1,0 +1,199 @@
+{% extends "tasks/base_tasks.html" %}
+{% block title %}Monthly Timesheet{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1">Monthly Timesheet</h2>
+    <p class="text-muted">Record daily activities and download your Excel report.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% include 'tasks/_ai_timesheet_widget.html' %}
+    <a class="btn btn-outline-secondary rounded-pill" href="{% url 'tasks:dashboard' %}">Back to Dashboard</a>
+    <a class="btn btn-success rounded-pill" href="{% url 'tasks:download_monthly_timesheet' %}?month={{ month }}">
+      <i class="fa-solid fa-file-excel me-1"></i> Download Excel
+    </a>
+  </div>
+</div>
+{% if saved %}<div class="alert alert-success">Monthly timesheet saved successfully.</div>{% endif %}
+<div class="card shadow-sm border-0 rounded-4 mb-3 p-3">
+  <form method="get" class="d-flex align-items-end flex-wrap gap-2">
+    <div><label for="month" class="form-label fw-semibold">Reporting month</label>
+      <input type="month" id="month" name="month" value="{{ month }}" class="form-control" required></div>
+    <button class="btn btn-primary" type="submit">Load Month</button>
+    <span class="ms-2 text-muted">{{ month_title }}</span>
+  </form>
+</div>
+{% if form_errors %}
+<div class="alert alert-danger border-0 rounded-3 shadow-sm" id="timesheet-server-errors" role="alert">
+  <strong><i class="fa-solid fa-circle-exclamation me-1"></i> Please correct the following before saving.</strong>
+  <div class="small mt-1 mb-2">Your entries, including AI-generated text, are still in the form.</div>
+  <ul class="mb-0">
+    {% for issue in form_errors %}
+      <li>{% if issue.key %}<a class="alert-link" href="#timesheet-row-{{ issue.key }}">{{ issue.date }}: {{ issue.message }}</a>{% else %}{{ issue.message }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+<div class="alert alert-danger border-0 rounded-3 shadow-sm d-none" id="timesheet-client-errors" role="alert" aria-live="assertive"></div>
+<style>
+  .timesheet-has-error td { box-shadow: inset 0 0 0 1px #dc3545; }
+  .timesheet-has-error select.is-invalid, .timesheet-has-error input.is-invalid { border-color: #dc3545; }
+</style>
+<form method="post" id="timesheet-month-form" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="month" value="{{ month }}">
+  <div class="card border-0 rounded-4 shadow-sm p-3 mb-3">
+    <div class="row g-3">
+      <div class="col-md-4"><label class="form-label fw-semibold">Work for / Organization</label>
+        <input class="form-control" name="organization" maxlength="180" value="{{ form_organization }}" placeholder="Resourcing Public Health"></div>
+      <div class="col-md-4"><label class="form-label fw-semibold">Name</label>
+        <input class="form-control" name="display_name" maxlength="150" value="{{ form_display_name }}" required></div>
+      <div class="col-md-4"><label class="form-label fw-semibold">Position</label>
+        <input class="form-control" name="position" maxlength="100" value="{{ form_position }}" placeholder="Project Coordinator"></div>
+    </div>
+  </div>
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle mb-0">
+        <thead class="table-light text-center">
+          <tr><th style="min-width:95px">Date</th><th style="min-width:170px">Day Type</th>
+            <th style="min-width:110px">Hours Worked</th><th style="min-width:340px">Task / Daily Activities</th></tr>
+        </thead>
+        <tbody>
+          {% for day in rows %}
+          <tr id="timesheet-row-{{ day.key }}" data-timesheet-day="{{ day.key }}" data-date-label="{{ day.date|date:'j M Y' }}" {% if day.weekend %}style="background:#9fbadb"{% endif %}>
+            <td class="text-center fw-semibold">{{ day.date|date:"j-M" }}<br><small class="text-muted">{{ day.date|date:"D" }}</small></td>
+            <td><select name="type_{{ day.key }}" class="form-select form-select-sm">
+              <option value="" {% if not day.day_type %}selected{% endif %}>— Not recorded —</option>
+              <option value="WORK" {% if day.day_type == 'WORK' %}selected{% endif %}>Working Day</option>
+              <option value="LEAVE" {% if day.day_type == 'LEAVE' %}selected{% endif %}>Annual Leave</option>
+              <option value="SICK" {% if day.day_type == 'SICK' %}selected{% endif %}>Sick Leave</option>
+              <option value="HOLIDAY" {% if day.day_type == 'HOLIDAY' %}selected{% endif %}>Public Holiday</option>
+              <option value="OFF" {% if day.day_type == 'OFF' %}selected{% endif %}>Weekend / Day Off</option>
+            </select><small class="text-danger d-block mt-1 timesheet-row-error {% if not day.error %}d-none{% endif %}" aria-live="polite">{{ day.error }}</small></td>
+            <td><input type="number" step="0.01" min="0.01" max="24" name="hours_{{ day.key }}" value="{{ day.hours }}" class="form-control form-control-sm" placeholder="8"></td>
+            <td><textarea name="activities_{{ day.key }}" class="form-control form-control-sm" rows="2" maxlength="8000" placeholder="Enter one activity per line">{{ day.activities }}</textarea></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="p-3 d-flex align-items-center justify-content-between gap-2 flex-wrap">
+      <small class="text-muted">Working Day requires hours greater than 0. Leave, holidays and days off count as 0 hours. Save before downloading.</small>
+      <button class="btn btn-primary rounded-pill px-4" type="submit" id="timesheet-save-button"><i class="fa-solid fa-floppy-disk me-1"></i> Save Month</button>
+    </div>
+  </div>
+</form>
+<script>
+// Progressive enhancement: server-side validation still runs if JS is disabled.
+(function () {
+  function initTimesheetValidation() {
+    const form = document.getElementById('timesheet-month-form');
+    const notice = document.getElementById('timesheet-client-errors');
+    if (!form || !notice || form.dataset.validationReady === 'true') return;
+    form.dataset.validationReady = 'true';
+
+    const rows = Array.from(form.querySelectorAll('tr[data-timesheet-day]'));
+    const saveButton = document.getElementById('timesheet-save-button');
+    const userName = form.querySelector('[name="display_name"]');
+
+    function updateRow(row) {
+      const dayType = row.querySelector('select[name^="type_"]');
+      const hours = row.querySelector('input[name^="hours_"]');
+      const activities = row.querySelector('textarea[name^="activities_"]');
+      const detail = row.querySelector('.timesheet-row-error');
+      if (!dayType || !hours || !activities || !detail) return null;
+
+      let error = '';
+      const type = dayType.value;
+      const hoursText = hours.value.trim();
+      const notes = activities.value.trim();
+      if (!type && (hoursText || notes)) {
+        error = 'Select a day type or clear the hours and activities.';
+      } else if (type === 'WORK') {
+        const validNumber = /^(?:\d+)(?:\.\d{1,2})?$/.test(hoursText);
+        const n = Number(hoursText);
+        if (!validNumber || !Number.isFinite(n) || n <= 0 || n > 24) {
+          error = 'Enter working hours greater than 0, up to 24 (max two decimals).';
+        }
+      }
+      if (!error && notes.length > 8000) {
+        error = 'Activities must not exceed 8,000 characters.';
+      }
+
+      detail.textContent = error;
+      detail.classList.toggle('d-none', !error);
+      row.classList.toggle('timesheet-has-error', Boolean(error));
+      for (const el of [dayType, hours, activities]) {
+        el.classList.remove('is-invalid');
+        el.removeAttribute('aria-invalid');
+      }
+      if (error) {
+        const target = !type ? dayType : type === 'WORK' ? hours : activities;
+        target.classList.add('is-invalid');
+        target.setAttribute('aria-invalid', 'true');
+        return {row, target, error, day: row.dataset.dateLabel || row.dataset.timesheetDay};
+      }
+      return null;
+    }
+
+    function hideNotice() {
+      notice.classList.add('d-none');
+      notice.textContent = '';
+    }
+
+    for (const row of rows) {
+      for (const control of row.querySelectorAll('select, input, textarea')) {
+        control.addEventListener('change', () => {
+          updateRow(row);
+          hideNotice();
+        });
+        control.addEventListener('input', () => {
+          if (row.classList.contains('timesheet-has-error')) updateRow(row);
+        });
+      }
+    }
+    form.addEventListener('submit', function (event) {
+      const problems = rows.map(updateRow).filter(Boolean);
+      const nameMissing = userName && !userName.value.trim();
+      if (problems.length || nameMissing) {
+        event.preventDefault();
+        const descriptions = problems.slice(0, 5).map(problem => problem.day);
+        const more = problems.length > 5 ? ` and ${problems.length - 5} more` : '';
+        notice.textContent = nameMissing
+          ? 'Please enter your name and review any highlighted daily rows. Your entries have not been lost.'
+          : `Please review ${problems.length} highlighted day(s): ${descriptions.join(', ')}${more}. Your entries have not been lost.`;
+        notice.classList.remove('d-none');
+        notice.scrollIntoView({behavior: 'smooth', block: 'center'});
+        if (nameMissing) {
+          userName.classList.add('is-invalid');
+          userName.focus({preventScroll: true});
+        } else {
+          problems[0].target.focus({preventScroll: true});
+        }
+        return;
+      }
+      hideNotice();
+      if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.textContent = 'Saving Month…';
+      }
+    });
+    if (userName) {
+      userName.addEventListener('input', () => {
+        if (userName.value.trim()) userName.classList.remove('is-invalid');
+      });
+    }
+    window.addEventListener('pageshow', () => {
+      if (saveButton) saveButton.disabled = false;
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTimesheetValidation);
+  } else {
+    initTimesheetValidation();
+  }
+})();
+</script>
+
+{% endblock %}

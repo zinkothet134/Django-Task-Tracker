@@ -7,6 +7,13 @@
     <p class="text-muted mb-0">Created by {{ task.created_by|default:"-" }} • Updated {{ task.updated_at|date:"Y-m-d H:i" }}</p>
   </div>
   <a href="{% url 'tasks:task_update' task.pk %}" class="btn btn-primary rounded-pill">Edit Task</a>
+  {% if request.user.is_superuser or task.created_by_id == request.user.id %}
+  <!-- TaskFlow delete link v1 -->
+  <a href="{% url 'tasks:task_delete' task.pk %}" class="btn btn-outline-danger rounded-pill" title="Delete this task">
+    <i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i> Delete Task
+  </a>
+  {% endif %}
+
 </div>
 
 <div class="row g-4">

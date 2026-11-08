@@ -1,0 +1,47 @@
+{% extends "tasks/base_tasks.html" %}
+{% block title %}Delete Task{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="fw-bold mb-1">Delete Task</h2>
+    <p class="text-secondary mb-0">Confirm before permanently removing this task.</p>
+  </div>
+  <a href="{{ task.get_absolute_url }}" class="btn btn-outline-secondary rounded-pill">Back to Task</a>
+</div>
+
+<div class="card soft-card border-0 shadow-sm rounded-4 p-4" style="max-width: 760px;">
+  <div class="d-flex align-items-start gap-3 mb-3">
+    <span class="d-inline-flex align-items-center justify-content-center rounded-3 bg-danger bg-opacity-10 text-danger" style="width:48px;height:48px; flex-shrink:0;">
+      <i class="fa-solid fa-triangle-exclamation fa-lg" aria-hidden="true"></i>
+    </span>
+    <div>
+      <h4 class="fw-bold mb-1">Permanently delete this task?</h4>
+      <p class="text-secondary mb-0">This cannot be undone. The task will no longer appear in lists or future AI-generated reports.</p>
+    </div>
+  </div>
+
+  <div class="rounded-3 border bg-light p-3 mb-4">
+    <h5 class="mb-2 text-break">{{ task.title }}</h5>
+    <p class="text-secondary small mb-2 text-break">{{ task.description|truncatechars:240|default:"No description" }}</p>
+    <div class="small text-muted">Created by: {{ task.created_by|default:"Unknown" }} &nbsp; · &nbsp; Assigned to: {{ task.assigned_to|default:"Unassigned" }}</div>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-danger" role="alert">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="{% url 'tasks:task_delete' task.pk %}">
+    {% csrf_token %}
+    <label class="form-check d-flex align-items-start gap-2 mb-4">
+      <input class="form-check-input mt-1" type="checkbox" name="confirm_delete" value="yes" required>
+      <span class="form-check-label">I understand that deleting this task is permanent.</span>
+    </label>
+    <div class="d-flex gap-2 flex-wrap">
+      <button type="submit" class="btn btn-danger rounded-pill px-4">
+        <i class="fa-solid fa-trash-can me-1" aria-hidden="true"></i> Delete Task
+      </button>
+      <a href="{{ task.get_absolute_url }}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

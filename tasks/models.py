@@ -169,3 +169,35 @@ class Profile(models.Model):
         
     def __str__(self):
         return f"{self.user.username} Profile"
+
+# --- Monthly Timesheet feature ---
+class TimesheetPreference(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='timesheet_preference')
+    organization = models.CharField(max_length=180, blank=True)
+    display_name = models.CharField(max_length=150, blank=True)
+    position = models.CharField(max_length=100, blank=True)
+
+    def __str__(self):
+        return f'Timesheet settings for {self.user}'
+
+
+class TimesheetEntry(models.Model):
+    DAY_TYPES = [
+        ('WORK', 'Working Day'),
+        ('LEAVE', 'Annual Leave'),
+        ('SICK', 'Sick Leave'),
+        ('HOLIDAY', 'Public Holiday'),
+        ('OFF', 'Weekend / Day Off'),
+    ]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='timesheet_entries')
+    date = models.DateField(db_index=True)
+    day_type = models.CharField(max_length=12, choices=DAY_TYPES)
+    hours = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    activities = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['date']
+        constraints = [models.UniqueConstraint(fields=['user', 'date'], name='unique_timesheet_user_date')]
+
+    def __str__(self):
+        return f'{self.user}: {self.date}'
