@@ -68,6 +68,7 @@ SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000')
 
 # Application definition
 INSTALLED_APPS = [
+    "rest_framework",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -96,19 +97,33 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_REDIRECT_URL = "/tasks/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
-ACCOUNT_AUTHENTICATION_METHOD= "email"
-ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-# 👇 ADD THIS HERE
-ACCOUNT_SIGNUP_FORM_CLASS = "tasks.forms.OrganizationSignupForm"
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
-ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+# ACCOUNT_AUTHENTICATION_METHOD= "email"
+# ACCOUNT_LOGIN_METHODS = {"email"}
+# ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+# ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+# # 👇 ADD THIS HERE
+# ACCOUNT_SIGNUP_FORM_CLASS = "tasks.forms.OrganizationSignupForm"
+# ACCOUNT_EMAIL_REQUIRED = True
+# ACCOUNT_USERNAME_REQUIRED = False
+# ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
+# ACCOUNT_UNIQUE_EMAIL = True
+# ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
-ACCOUNT_LOGOUT_ON_GET = True
+# ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_LOGIN_METHODS = {"email"}
+
+ACCOUNT_SIGNUP_FIELDS = [
+    "email*",
+    "password1*",
+    "password2*",
+]
+
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_UNIQUE_EMAIL = True
+
+ACCOUNT_SIGNUP_FORM_CLASS = "tasks.forms.OrganizationSignupForm"
+
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
 
 EMAIL_BACKEND = os.environ.get(
     "EMAIL_BACKEND",
