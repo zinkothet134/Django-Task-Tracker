@@ -18,7 +18,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
 
+from tasks.mobile_api import MobileTokenObtainPairView, mobile_me, mobile_tasks
+from rest_framework_simplejwt.views import TokenRefreshView
+
 urlpatterns = [
+    path("api/mobile/login/", MobileTokenObtainPairView.as_view(), name="mobile_login"),
+    path("api/mobile/token/refresh/", TokenRefreshView.as_view(), name="mobile_token_refresh"),
+    path("api/mobile/me/", mobile_me, name="mobile_me"),
+    path("api/mobile/tasks/", mobile_tasks, name="mobile_tasks"),
     path("", RedirectView.as_view(url="/tasks/", permanent=False)),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
