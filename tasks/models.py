@@ -201,3 +201,16 @@ class TimesheetEntry(models.Model):
 
     def __str__(self):
         return f'{self.user}: {self.date}'
+
+# TaskFlow Phase 6B.2 — server-side idempotency for explicit mobile task creation.
+class MobileTaskUploadKey(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='mobile_task_upload_keys')
+    client_task_id = models.UUIDField()
+    payload_sha256 = models.CharField(max_length=64)
+    task = models.ForeignKey('Task', on_delete=models.SET_NULL, null=True, blank=True, related_name='mobile_upload_keys')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'client_task_id'], name='uniq_mobile_upload_user_uuid')
+        ]
